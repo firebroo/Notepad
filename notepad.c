@@ -225,8 +225,10 @@ int main( int argc, char *argv[]){
     help = gtk_menu_item_new_with_label("Help");
 
     //quit = gtk_menu_item_new_with_label("quit");
-    gtk_widget_add_accelerator(quit, "activate", accel_group, GDK_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
-    gtk_widget_add_accelerator(nsave, "activate", accel_group, GDK_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(quit, "activate",  \
+            accel_group, GDK_q, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+    gtk_widget_add_accelerator(nsave, "activate", \
+            accel_group, GDK_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
     about = gtk_menu_item_new_with_label("about");
 
@@ -244,20 +246,21 @@ int main( int argc, char *argv[]){
 
     gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), about);
 
-    gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, FALSE, 5);
 
     view = gtk_text_view_new();
     //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     scrolled = gtk_scrolled_window_new(NULL, NULL); /*创建滚动窗口构件*/
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled), \
                                                 GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-    gtk_box_pack_start(GTK_BOX(vbox), scrolled, TRUE, TRUE, 0);
     gtk_widget_grab_focus(view);
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
 
     statusbar = gtk_statusbar_new();
+
+    gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), scrolled, TRUE, TRUE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, FALSE, 0);
 
     //gtk_widget_add_events(window, GDK_BUTTON_PRESS_MASK);
