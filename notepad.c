@@ -8,6 +8,16 @@ GtkTextBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
 
+GdkPixbuf *create_pixbuf(const gchar *filename) {
+    GdkPixbuf *pixbuf;
+    GError *error = NULL;
+    pixbuf  = gdk_pixbuf_new_from_file(filename, &error);
+    if(!pixbuf) {
+            fprintf(stderr, "%s\n", error->message);
+            g_error_free(error);
+        }
+}
+
 void select_font(GtkWidget *widget)
 {
     GtkResponseType result;
@@ -41,7 +51,7 @@ void select_color(GtkWidget *widget, gpointer label)
 
 void show_about(GtkWidget *widget, gpointer data)
 {
-    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file("battery.png", NULL);
+    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file("icon.png", NULL);
     GtkWidget *dialog = gtk_about_dialog_new();
     gtk_about_dialog_set_name(GTK_ABOUT_DIALOG(dialog), "Notepad");
     gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(dialog), "1.0");
@@ -172,6 +182,8 @@ int main( int argc, char *argv[]){
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
     gtk_window_set_title(GTK_WINDOW(window), "Notepad");
+    gtk_window_set_icon(GTK_WINDOW(window), create_pixbuf("icon.png"));
+    gtk_container_set_border_width(GTK_CONTAINER(window), 5);
 
     //sw = gtk_scrolled_window_new(NULL, NULL);
     //gtk_container_add(GTK_CONTAINER(window), sw);
