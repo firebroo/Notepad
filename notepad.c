@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <gtksourceview/gtksourceview.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -340,7 +341,15 @@ int main( int argc, char *argv[]){
     gtk_menu_shell_append(GTK_MENU_SHELL(helpmenu), about);
 
 
-    view = gtk_text_view_new();
+    //view = gtk_text_view_new();
+    view = gtk_source_view_new ();
+    gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(view),TRUE); //显示行号栏
+    gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(view),TRUE);//行号栏里面显示数字
+    gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view),TRUE);//突显当前行
+    gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(view),TRUE);
+    gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(view),TRUE); //启动自动缩进的文本
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view),GTK_WRAP_CHAR); //设置自动换行的模式: 
+
     //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     scrolled = gtk_scrolled_window_new(NULL, NULL); /*创建滚动窗口构件*/
