@@ -7,15 +7,50 @@
 GtkTextBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
+GtkWidget *window;
 
 GdkPixbuf *create_pixbuf(const gchar *filename) {
     GdkPixbuf *pixbuf;
     GError *error = NULL;
     pixbuf  = gdk_pixbuf_new_from_file(filename, &error);
     if(!pixbuf) {
-            fprintf(stderr, "%s\n", error->message);
-            g_error_free(error);
+        fprintf(stderr, "%s\n", error->message);
+        g_error_free(error);
+    }
+}
+
+gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
+{
+    GtkWidget *top_dialog;
+    gchar *filename;
+    FILE *pFile;
+
+    top_dialog = gtk_file_chooser_dialog_new ("save file", GTK_WINDOW(parent_window), \
+            GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
+    gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (top_dialog), TRUE);
+    gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER (top_dialog), "~/");
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER (top_dialog), "Unsaved Document");
+
+    if (gtk_dialog_run(GTK_DIALOG(top_dialog)) == GTK_RESPONSE_ACCEPT)
+    {
+        filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (top_dialog));
+        pFile = fopen(filename, "w");
+        if(pFile == NULL) {
+            *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
+        }else {
+            size_t result = fwrite(text, 1, strlen(text), pFile);
+            if(result == strlen(text)) {
+                printf("%s\n", "success");
+            }
+            fflush(pFile);
+            fclose(pFile);
+            *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
         }
+        gtk_dialog_run(GTK_DIALOG(*dialog));
+        //destroy
+        gtk_widget_destroy(*dialog);
+    }
+    gtk_widget_destroy(top_dialog);
 }
 
 void select_font(GtkWidget *widget)
@@ -42,10 +77,10 @@ void select_color(GtkWidget *widget, gpointer label)
     GtkWidget *dialog = gtk_color_selection_dialog_new("Font Color");
     result = gtk_dialog_run(GTK_DIALOG(dialog));
     if (result == GTK_RESPONSE_OK) {
-            GdkColor color;
-            colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dialog)->colorsel);
-            gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
-        }
+        GdkColor color;
+        colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dialog)->colorsel);
+        gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
+    }
     gtk_widget_destroy(dialog);
 }
 
@@ -99,11 +134,12 @@ void save_file(GtkWidget *widget)
             fclose(pFile);
             dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
         }
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
     }else{
-        dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"please fist open file");
+        gtk_show_file_save(window, text, &dialog);
+        //dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"please fist open file");
     }
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
 }
 
 void open_file(GtkWidget *file)
@@ -150,7 +186,6 @@ static void mark_set_callback(GtkTextBuffer *buffer, const GtkTextIter \
 
 
 int main( int argc, char *argv[]){
-    GtkWidget *window;
     GtkWidget *menubar;
     GtkWidget *filemenu;
     GtkWidget *helpmenu;
@@ -252,7 +287,7 @@ int main( int argc, char *argv[]){
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     scrolled = gtk_scrolled_window_new(NULL, NULL); /*创建滚动窗口构件*/
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled), \
-                                                GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+            GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
     gtk_widget_grab_focus(view);
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
 
