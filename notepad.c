@@ -9,6 +9,15 @@ gchar *filename;
 GtkWidget *view;
 GtkWidget *window;
 
+typedef enum _status {
+    SUCCESS,FAIL
+} STATUS;
+
+void create_new_file(GtkWidget *widget) {
+    printf("%s\n", "test");
+}
+
+
 GdkPixbuf *create_pixbuf(const gchar *filename) {
     GdkPixbuf *pixbuf;
     GError *error = NULL;
@@ -19,11 +28,25 @@ GdkPixbuf *create_pixbuf(const gchar *filename) {
     }
 }
 
+STATUS _save_file(FILE *pFile, gchar *text){
+    size_t result = fwrite(text, 1, strlen(text), pFile);
+    fflush(pFile);
+    fclose(pFile);
+    if(result == strlen(text)) {
+         gtk_window_set_title(GTK_WINDOW(window),filename);
+         return SUCCESS;
+    }else{
+        return FAIL;
+
+    }
+}
+
 gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
 {
     GtkWidget *top_dialog;
     //gchar *filename;
     FILE *pFile;
+    STATUS status;
 
 label:
     top_dialog = gtk_file_chooser_dialog_new ("save file", GTK_WINDOW(parent_window), \
@@ -44,16 +67,20 @@ label:
             gtk_widget_destroy(top_dialog);
             goto label;
         }else {
-            size_t result = fwrite(text, 1, strlen(text), pFile);
-            if(result == strlen(text)) {
-                printf("%s\n", "success");
+            status = _save_file(pFile, text);
+            if(status == SUCCESS) {
+                *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
+                gtk_dialog_run(GTK_DIALOG(*dialog));
+                //destroy
+                gtk_widget_destroy(*dialog);
             }
-            fflush(pFile);
-            fclose(pFile);
-            *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
-            gtk_dialog_run(GTK_DIALOG(*dialog));
-            //destroy
-            gtk_widget_destroy(*dialog);
+            //size_t result = fwrite(text, 1, strlen(text), pFile);
+            //if(result == strlen(text)) {
+            //    gtk_window_set_title(GTK_WINDOW(window),filename);                
+            //    //printf("%s\n", "success");
+            //}
+            //fflush(pFile);
+            //fclose(pFile);
         }
     }
     //destroy
@@ -88,8 +115,7 @@ void select_color(GtkWidget *widget, gpointer label)
         colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dialog)->colorsel);
         gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
     }
-    gtk_widget_destroy(dialog);
-}
+    gtk_widget_destroy(dialog); }
 
 void show_about(GtkWidget *widget, gpointer data)
 {
@@ -120,12 +146,13 @@ void update_statusbar(GtkTextBuffer *buffer, GtkStatusbar *statusbar){
     g_free(msg);
 }
 
-void save_file(GtkWidget *widget)
+STATUS save_file(GtkWidget *widget)
 {
     GtkWidget *dialog;
     GtkTextIter start,end;
     gchar *text;
     FILE *pFile;
+    STATUS status;
     gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
     text = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);
     if(filename) {
@@ -133,13 +160,17 @@ void save_file(GtkWidget *widget)
         if(pFile == NULL) {
             dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
         }else {
-            size_t result = fwrite(text, 1, strlen(text), pFile);
-            if(result == strlen(text)) {
-                printf("%s\n", "success");
+            status = _save_file(pFile, text);
+            if(status == SUCCESS) {
+                dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
             }
-            fflush(pFile);
-            fclose(pFile);
-            dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
+            //size_t result = fwrite(text, 1, strlen(text), pFile);
+            //if(result == strlen(text)) {
+            //    gtk_window_set_title(GTK_WINDOW(window),filename);
+            //    //printf("%s\n", "success");
+            //}
+            //fflush(pFile);
+            //fclose(pFile);
         }
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
@@ -149,7 +180,7 @@ void save_file(GtkWidget *widget)
     }
 }
 
-void open_file(GtkWidget *file)
+int open_file(GtkWidget *file)
 {
     GtkWidget *dialog;
     GtkWidget *label;
@@ -157,28 +188,43 @@ void open_file(GtkWidget *file)
     char *pBuf;
     filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file));
     FILE *pFile = fopen(filename,"r");
-    fseek(pFile,0,SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
-    int len = ftell(pFile);
-    pBuf = (char *)malloc(len+1);
-    rewind(pFile);
-    fread(pBuf, 1, len, pFile);
-    pBuf[len] = '\0';
-    fclose(pFile);
-    gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
-    //clear view
-    gtk_text_buffer_delete(buffer, &start, &end);
-    gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
-    free(pBuf);
-    gtk_widget_destroy(file);
+    if(pFile) {
+        fseek(pFile,0,SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
+        int len = ftell(pFile);
+        pBuf = (char *)malloc(len+1);
+        rewind(pFile);
+        fread(pBuf, 1, len, pFile);
+        pBuf[len] = '\0';
+        fclose(pFile);
+        gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
+        //clear view
+        gtk_text_buffer_delete(buffer, &start, &end);
+        gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
+        free(pBuf);
+        gtk_widget_destroy(file);
+        return SUCCESS;
+    }else {
+        dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+        return FAIL;
+    }
 }
 
 void select_and_open_file(GtkWidget *widget,gpointer data)
 {
     GtkWidget *file;
+label:
     file = gtk_file_chooser_dialog_new("SelectFile",NULL,GTK_FILE_CHOOSER_ACTION_OPEN, \
             GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,GTK_STOCK_OK,GTK_RESPONSE_ACCEPT,NULL);
     if(gtk_dialog_run(GTK_DIALOG(file)) == GTK_RESPONSE_ACCEPT) {
-        open_file(file);
+        STATUS result = open_file(file);
+        if(result == FAIL) {
+            gtk_widget_destroy(file);
+            goto label;
+        }else {
+            gtk_window_set_title(GTK_WINDOW(window),filename);
+        }
     }
     else {
         gtk_widget_destroy(file);
@@ -207,13 +253,14 @@ int main( int argc, char *argv[]){
     GtkWidget *export;
     GtkWidget *vbox;
     GtkWidget *toolbar;
-    GtkWidget *new;
+    GtkWidget *nnew;
     GtkWidget *nopen;
     GtkWidget *nsave;
     GtkWidget *sep;
     GtkWidget *sw;
     GtkWidget *about;
     GtkToolItem *open;
+    GtkToolItem *new;
     GtkToolItem *save;
     GtkToolItem *font;
     GtkToolItem *color;
@@ -240,6 +287,8 @@ int main( int argc, char *argv[]){
     gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
     open = gtk_tool_button_new_from_stock(GTK_STOCK_OPEN);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), open, -1);
+    new = gtk_tool_button_new_from_stock(GTK_STOCK_NEW);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), new, -1);
     save = gtk_tool_button_new_from_stock(GTK_STOCK_SAVE);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), save, -1);
     color = gtk_tool_button_new_from_stock(GTK_STOCK_SELECT_COLOR);
@@ -259,6 +308,7 @@ int main( int argc, char *argv[]){
     //file = gtk_menu_item_new_with_label("File");
     file = gtk_menu_item_new_with_mnemonic("_File");
     nopen = gtk_image_menu_item_new_from_stock(GTK_STOCK_OPEN, NULL);
+    nnew = gtk_image_menu_item_new_from_stock(GTK_STOCK_NEW, NULL);
     //nsave = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE, NULL);
     sep = gtk_separator_menu_item_new();
     quit = gtk_image_menu_item_new_from_stock(GTK_STOCK_QUIT, accel_group);
@@ -281,6 +331,7 @@ int main( int argc, char *argv[]){
     gtk_menu_shell_append(GTK_MENU_SHELL(menubar), help);
 
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), nopen);
+    gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), nnew);
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), nsave);
     //分割线
     gtk_menu_shell_append(GTK_MENU_SHELL(filemenu), sep);
@@ -312,6 +363,8 @@ int main( int argc, char *argv[]){
             "button-press-event",G_CALLBACK(select_and_open_file), NULL);
     g_signal_connect(G_OBJECT(nsave), \
             "activate",G_CALLBACK(save_file), NULL);
+    g_signal_connect(G_OBJECT(nnew), \
+            "activate",G_CALLBACK(create_new_file), NULL);
     g_signal_connect(G_OBJECT(open), \
             "clicked",G_CALLBACK(select_and_open_file), NULL);
     g_signal_connect(G_OBJECT(save), \
