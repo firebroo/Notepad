@@ -22,9 +22,10 @@ GdkPixbuf *create_pixbuf(const gchar *filename) {
 gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
 {
     GtkWidget *top_dialog;
-    gchar *filename;
+    //gchar *filename;
     FILE *pFile;
 
+label:
     top_dialog = gtk_file_chooser_dialog_new ("save file", GTK_WINDOW(parent_window), \
             GTK_FILE_CHOOSER_ACTION_SAVE, GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT, NULL);
     gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (top_dialog), TRUE);
@@ -37,6 +38,11 @@ gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dia
         pFile = fopen(filename, "w");
         if(pFile == NULL) {
             *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
+            gtk_dialog_run(GTK_DIALOG(*dialog));
+            //destroy
+            gtk_widget_destroy(*dialog);
+            gtk_widget_destroy(top_dialog);
+            goto label;
         }else {
             size_t result = fwrite(text, 1, strlen(text), pFile);
             if(result == strlen(text)) {
@@ -45,11 +51,12 @@ gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dia
             fflush(pFile);
             fclose(pFile);
             *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
+            gtk_dialog_run(GTK_DIALOG(*dialog));
+            //destroy
+            gtk_widget_destroy(*dialog);
         }
-        gtk_dialog_run(GTK_DIALOG(*dialog));
-        //destroy
-        gtk_widget_destroy(*dialog);
     }
+    //destroy
     gtk_widget_destroy(top_dialog);
 }
 
