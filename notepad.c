@@ -34,12 +34,19 @@ STATUS _save_file(FILE *pFile, gchar *text){
     fflush(pFile);
     fclose(pFile);
     if(result == strlen(text)) {
-         gtk_window_set_title(GTK_WINDOW(window),filename);
-         return SUCCESS;
+        gtk_window_set_title(GTK_WINDOW(window),filename);
+        return SUCCESS;
     }else{
         return FAIL;
 
     }
+}
+
+void update_line_color(GtkWidget *view) {
+    GdkColor color;
+    //line number default is orange
+    gdk_color_parse ("Violet", &color);
+    gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
 }
 
 gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
@@ -114,9 +121,12 @@ void select_color(GtkWidget *widget, gpointer label)
     if (result == GTK_RESPONSE_OK) {
         GdkColor color;
         colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dialog)->colorsel);
+        gdk_color_parse ("red", &color);
         gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
+        //gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
     }
-    gtk_widget_destroy(dialog); }
+    gtk_widget_destroy(dialog); 
+}
 
 void show_about(GtkWidget *widget, gpointer data)
 {
@@ -323,7 +333,8 @@ int main( int argc, char *argv[]){
     gtk_widget_add_accelerator(nsave, "activate", \
             accel_group, GDK_s, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
-    about = gtk_menu_item_new_with_label("about");
+    //about = gtk_menu_item_new_with_label("about");
+    about = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, NULL);
 
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(file), filemenu);
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(help), helpmenu);
@@ -354,7 +365,7 @@ int main( int argc, char *argv[]){
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     scrolled = gtk_scrolled_window_new(NULL, NULL); /*创建滚动窗口构件*/
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled), \
-            GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+            GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_widget_grab_focus(view);
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
 
@@ -394,6 +405,7 @@ int main( int argc, char *argv[]){
             G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
+    update_line_color(view);
     gtk_main();
     return 0;
 }
