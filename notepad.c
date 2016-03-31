@@ -1,11 +1,14 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtksourceview/gtksourceview.h>
+#include <gtksourceview/gtksourcebuffer.h>
+#include <gtksourceview/gtksourcelanguage.h>
+#include <gtksourceview/gtksourcelanguagemanager.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-GtkTextBuffer *buffer;
+GtkSourceBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
 GtkWidget *window;
@@ -29,11 +32,20 @@ GdkPixbuf *create_pixbuf(const gchar *filename) {
     }
 }
 
+void set_buffer_language(const gchar * lang) {
+    GtkSourceLanguageManager *lm; //管理
+    GtkSourceLanguage *language = NULL; //创建一个GtkSourceLanguagesManager 管理标记语言
+    lm = gtk_source_language_manager_new();
+    language = gtk_source_language_manager_get_language (lm, lang); //加载C语言语法高亮格式  
+    gtk_source_buffer_set_language(buffer, language); //缓冲区buffer关联 language的 标记语言!
+}
+
 STATUS _save_file(FILE *pFile, gchar *text){
     size_t result = fwrite(text, 1, strlen(text), pFile);
     fflush(pFile);
     fclose(pFile);
     if(result == strlen(text)) {
+        set_buffer_language("c");
         gtk_window_set_title(GTK_WINDOW(window),filename);
         return SUCCESS;
     }else{
@@ -143,13 +155,13 @@ void show_about(GtkWidget *widget, gpointer data)
     gtk_widget_destroy(dialog);
 }
 
-void update_statusbar(GtkTextBuffer *buffer, GtkStatusbar *statusbar){
+void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     gchar *msg;
     gint row, col;
     GtkTextIter iter;
     gtk_statusbar_pop(statusbar, 0);
-    gtk_text_buffer_get_iter_at_mark(buffer, &iter,
-            gtk_text_buffer_get_insert(buffer));
+    gtk_text_buffer_get_iter_at_mark(GTK_TEXT_BUFFER(buffer), &iter,
+            gtk_text_buffer_get_insert(GTK_TEXT_BUFFER(buffer)));
     row = gtk_text_iter_get_line(&iter);
     col = gtk_text_iter_get_line_offset(&iter);
     msg = g_strdup_printf("Col %d Ln %d", col+1, row+1);
@@ -165,7 +177,7 @@ STATUS save_file(GtkWidget *widget)
     FILE *pFile;
     STATUS status;
     gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
-    text = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);
+    text = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(buffer), &start, &end, TRUE);
     if(filename) {
         pFile = fopen(filename, "w");
         if(pFile == NULL) {
@@ -198,6 +210,7 @@ int open_file(GtkWidget *file)
     GtkTextIter start,end;
     char *pBuf;
     filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file));
+    printf("%s\n", filename);
     FILE *pFile = fopen(filename,"r");
     if(pFile) {
         fseek(pFile,0,SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
@@ -209,7 +222,7 @@ int open_file(GtkWidget *file)
         fclose(pFile);
         gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
         //clear view
-        gtk_text_buffer_delete(buffer, &start, &end);
+        gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
         gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
         free(pBuf);
         gtk_widget_destroy(file);
@@ -243,7 +256,7 @@ label:
 }
 
 
-static void mark_set_callback(GtkTextBuffer *buffer, const GtkTextIter \
+static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
         *new_location, GtkTextMark *mark, gpointer data){
     update_statusbar(buffer, GTK_STATUSBAR(data));
 }
@@ -277,10 +290,16 @@ int main( int argc, char *argv[]){
     GtkToolItem *color;
     GtkToolItem *exit;
     GtkAccelGroup *accel_group = NULL;
+    GdkScreen *screen;
+    GtkSourceLanguageManager *lm; //管理
+    GtkSourceLanguage *language = NULL; //创建一个GtkSourceLanguagesManager 管理标记语言
     gtk_init(&argc, &argv);
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-    gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
+    //gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
+    screen = gtk_window_get_screen( GTK_WINDOW(window )); 
+    gtk_window_set_default_size(GTK_WINDOW(window),\
+            gdk_screen_get_width(screen), gdk_screen_get_height(screen));
     gtk_window_set_title(GTK_WINDOW(window), "Notepad");
     gtk_window_set_icon(GTK_WINDOW(window), create_pixbuf("icon.png"));
     gtk_container_set_border_width(GTK_CONTAINER(window), 5);
@@ -353,7 +372,10 @@ int main( int argc, char *argv[]){
 
 
     //view = gtk_text_view_new();
-    view = gtk_source_view_new ();
+    //view = gtk_source_view_new ();
+    buffer = GTK_SOURCE_BUFFER(gtk_source_buffer_new(NULL)); //创建缓冲区
+    view = gtk_source_view_new_with_buffer(buffer);
+    set_buffer_language("php");
     gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(view),TRUE); //显示行号栏
     gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(view),TRUE);//行号栏里面显示数字
     gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view),TRUE);//突显当前行
@@ -362,7 +384,7 @@ int main( int argc, char *argv[]){
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view),GTK_WRAP_CHAR); //设置自动换行的模式: 
 
     //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
-    buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+    //buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
     scrolled = gtk_scrolled_window_new(NULL, NULL); /*创建滚动窗口构件*/
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled), \
             GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
