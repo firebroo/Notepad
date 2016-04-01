@@ -8,6 +8,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define POINT '.'
+
 GtkSourceBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
@@ -17,12 +19,12 @@ typedef enum _status {
     SUCCESS,FAIL
 } STATUS;
 
-void create_new_file(GtkWidget *widget) {
+static void create_new_file(GtkWidget *widget) {
     printf("%s\n", "test");
 }
 
 
-GdkPixbuf *create_pixbuf(const gchar *filename) {
+static GdkPixbuf *create_pixbuf(const gchar *filename) {
     GdkPixbuf *pixbuf;
     GError *error = NULL;
     pixbuf  = gdk_pixbuf_new_from_file(filename, &error);
@@ -32,20 +34,30 @@ GdkPixbuf *create_pixbuf(const gchar *filename) {
     }
 }
 
-void set_buffer_language(const gchar * lang) {
-    GtkSourceLanguageManager *lm; //管理
-    GtkSourceLanguage *language = NULL; //创建一个GtkSourceLanguagesManager 管理标记语言
+static void set_buffer_language(const gchar * lang) {
+    if(0 == strcmp(lang, "py")){
+        lang = "python";
+    }else if(0 == strcmp(lang, "js")) {
+        lang = "javascript";
+    }else if(0 == strcmp(lang, "hs")) {
+        lang = "haskell";
+    }else if(0 == strcmp(lang, "rb")) {
+        lang = "ruby";
+    }else if(0 == strcmp(lang, "pl")) {
+        lang = "perl";
+    }
+    GtkSourceLanguageManager *lm;
+    GtkSourceLanguage *language = NULL;
     lm = gtk_source_language_manager_new();
-    language = gtk_source_language_manager_get_language (lm, lang); //加载C语言语法高亮格式  
-    gtk_source_buffer_set_language(buffer, language); //缓冲区buffer关联 language的 标记语言!
+    language = gtk_source_language_manager_get_language (lm, lang); //加载语言语法高亮格式  
+    gtk_source_buffer_set_language(buffer, language);
 }
 
-STATUS _save_file(FILE *pFile, gchar *text){
+static STATUS _save_file(FILE *pFile, gchar *text){
     size_t result = fwrite(text, 1, strlen(text), pFile);
     fflush(pFile);
     fclose(pFile);
     if(result == strlen(text)) {
-        set_buffer_language("c");
         gtk_window_set_title(GTK_WINDOW(window),filename);
         return SUCCESS;
     }else{
@@ -54,14 +66,20 @@ STATUS _save_file(FILE *pFile, gchar *text){
     }
 }
 
-void update_line_color(GtkWidget *view) {
+
+static void update_line_color(GtkWidget *view) {
     GdkColor color;
     //line number default is orange
     gdk_color_parse ("Violet", &color);
     gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
 }
 
-gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
+static char * get_file_suffix(const gchar* filename) {
+    char *file_suffix = strrchr(filename, POINT); 
+    return file_suffix;
+}
+
+static gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
 {
     GtkWidget *top_dialog;
     //gchar *filename;
@@ -78,6 +96,10 @@ label:
     if (gtk_dialog_run(GTK_DIALOG(top_dialog)) == GTK_RESPONSE_ACCEPT)
     {
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER (top_dialog));
+        char * file_suffix = get_file_suffix(filename);
+        if(file_suffix) {
+            set_buffer_language(file_suffix+1);
+        }
         pFile = fopen(filename, "w");
         if(pFile == NULL) {
             *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
@@ -107,24 +129,28 @@ label:
     gtk_widget_destroy(top_dialog);
 }
 
-void select_font(GtkWidget *widget)
+static void set_font(GtkWidget *widget, gchar *fontname) {
+      PangoFontDescription *font_desc = pango_font_description_from_string(fontname);
+      pango_font_description_set_size (font_desc, 13 * PANGO_SCALE); 
+      gtk_widget_modify_font(widget, font_desc);
+}
+
+static void select_font(GtkWidget *widget)
 {
     GtkResponseType result;
     GtkWidget *dialog = gtk_font_selection_dialog_new("Select Font");
     result = gtk_dialog_run(GTK_DIALOG(dialog));
     if(result == GTK_RESPONSE_OK || result == GTK_RESPONSE_APPLY)
     {
-        PangoFontDescription *font_desc;
         gchar *fontname = gtk_font_selection_dialog_get_font_name(GTK_FONT_SELECTION_DIALOG(dialog));
-        font_desc = pango_font_description_from_string(fontname);
-        gtk_widget_modify_font(view, font_desc);
+        set_font(view, fontname);
         g_free(fontname);
     }
     gtk_widget_destroy(dialog);
 }
 
 
-void select_color(GtkWidget *widget, gpointer label)
+static void select_color(GtkWidget *widget, gpointer label)
 {
     GtkResponseType result;
     GtkColorSelection *colorsel;
@@ -140,7 +166,7 @@ void select_color(GtkWidget *widget, gpointer label)
     gtk_widget_destroy(dialog); 
 }
 
-void show_about(GtkWidget *widget, gpointer data)
+static void show_about(GtkWidget *widget, gpointer data)
 {
     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file("icon.png", NULL);
     GtkWidget *dialog = gtk_about_dialog_new();
@@ -155,7 +181,7 @@ void show_about(GtkWidget *widget, gpointer data)
     gtk_widget_destroy(dialog);
 }
 
-void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
+static void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     gchar *msg;
     gint row, col;
     GtkTextIter iter;
@@ -169,7 +195,7 @@ void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     g_free(msg);
 }
 
-STATUS save_file(GtkWidget *widget)
+static STATUS save_file(GtkWidget *widget)
 {
     GtkWidget *dialog;
     GtkTextIter start,end;
@@ -203,15 +229,21 @@ STATUS save_file(GtkWidget *widget)
     }
 }
 
-int open_file(GtkWidget *file)
+static int open_file(GtkWidget *file)
 {
     GtkWidget *dialog;
     GtkWidget *label;
     GtkTextIter start,end;
     char *pBuf;
     filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file));
-    printf("%s\n", filename);
-    FILE *pFile = fopen(filename,"r");
+    char * file_suffix = get_file_suffix(filename);
+    if(file_suffix) {
+        set_buffer_language(file_suffix+1);
+    }
+    if(!filename) {
+        return FAIL;
+    }
+    FILE *pFile = fopen(filename, "r");
     if(pFile) {
         fseek(pFile,0,SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
         int len = ftell(pFile);
@@ -235,7 +267,7 @@ int open_file(GtkWidget *file)
     }
 }
 
-void select_and_open_file(GtkWidget *widget,gpointer data)
+static void select_and_open_file(GtkWidget *widget,gpointer data)
 {
     GtkWidget *file;
 label:
@@ -260,7 +292,6 @@ static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
         *new_location, GtkTextMark *mark, gpointer data){
     update_statusbar(buffer, GTK_STATUSBAR(data));
 }
-
 
 int main( int argc, char *argv[]){
     GtkWidget *menubar;
@@ -375,7 +406,7 @@ int main( int argc, char *argv[]){
     //view = gtk_source_view_new ();
     buffer = GTK_SOURCE_BUFFER(gtk_source_buffer_new(NULL)); //创建缓冲区
     view = gtk_source_view_new_with_buffer(buffer);
-    set_buffer_language("php");
+    //set_buffer_language("php");
     gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(view),TRUE); //显示行号栏
     gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(view),TRUE);//行号栏里面显示数字
     gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view),TRUE);//突显当前行
@@ -428,6 +459,7 @@ int main( int argc, char *argv[]){
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
     update_line_color(view);
+    set_font(view, "Monospace");
     gtk_main();
     return 0;
 }
