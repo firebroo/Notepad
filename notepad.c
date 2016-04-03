@@ -20,7 +20,7 @@ typedef enum _status {
 } STATUS;
 
 static void create_new_file(GtkWidget *widget) {
-    printf("%s\n", "test");
+
 }
 
 
@@ -53,12 +53,13 @@ static void set_buffer_language(const gchar * lang) {
     gtk_source_buffer_set_language(buffer, language);
 }
 
-static STATUS _save_file(FILE *pFile, gchar *text){
+static STATUS _save_file(FILE *pFile, gchar *text, gpointer label){
     size_t result = fwrite(text, 1, strlen(text), pFile);
     fflush(pFile);
     fclose(pFile);
     if(result == strlen(text)) {
-        gtk_window_set_title(GTK_WINDOW(window),filename);
+        //gtk_window_set_title(GTK_WINDOW(window),filename);
+        gtk_label_set_text(label, filename);
         return SUCCESS;
     }else{
         return FAIL;
@@ -79,7 +80,7 @@ static char * get_file_suffix(const gchar* filename) {
     return file_suffix;
 }
 
-static gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog)
+static gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog, gpointer label)
 {
     GtkWidget *top_dialog;
     //gchar *filename;
@@ -109,7 +110,7 @@ label:
             gtk_widget_destroy(top_dialog);
             goto label;
         }else {
-            status = _save_file(pFile, text);
+            status = _save_file(pFile, text, label);
             if(status == SUCCESS) {
                 *dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
                 gtk_dialog_run(GTK_DIALOG(*dialog));
@@ -197,7 +198,7 @@ static void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     g_free(msg);
 }
 
-static STATUS save_file(GtkWidget *widget)
+static STATUS save_file(GtkWidget *widget, gpointer label)
 {
     GtkWidget *dialog;
     GtkTextIter start,end;
@@ -211,7 +212,7 @@ static STATUS save_file(GtkWidget *widget)
         if(pFile == NULL) {
             dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
         }else {
-            status = _save_file(pFile, text);
+            status = _save_file(pFile, text, label);
             if(status == SUCCESS) {
                 dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_INFO,GTK_BUTTONS_OK,"save success!");
             }
@@ -226,15 +227,15 @@ static STATUS save_file(GtkWidget *widget)
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
     }else{
-        gtk_show_file_save(window, text, &dialog);
+        gtk_show_file_save(window, text, &dialog, label);
         //dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"please fist open file");
     }
 }
 
-static int open_file(GtkWidget *file)
+static int open_file(GtkWidget *file, gpointer label)
 {
     GtkWidget *dialog;
-    GtkWidget *label;
+    //GtkWidget *label;
     GtkTextIter start,end;
     char *pBuf;
     filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file));
@@ -260,6 +261,7 @@ static int open_file(GtkWidget *file)
         gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
         free(pBuf);
         gtk_widget_destroy(file);
+        gtk_label_set_text(label, filename);
         return SUCCESS;
     }else {
         dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
@@ -269,19 +271,20 @@ static int open_file(GtkWidget *file)
     }
 }
 
-static void select_and_open_file(GtkWidget *widget,gpointer data)
+static void select_and_open_file(GtkWidget *widget,gpointer label)
 {
     GtkWidget *file;
 label:
     file = gtk_file_chooser_dialog_new("SelectFile",NULL,GTK_FILE_CHOOSER_ACTION_OPEN, \
             GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,GTK_STOCK_OK,GTK_RESPONSE_ACCEPT,NULL);
     if(gtk_dialog_run(GTK_DIALOG(file)) == GTK_RESPONSE_ACCEPT) {
-        STATUS result = open_file(file);
+        STATUS result = open_file(file, label);
         if(result == FAIL) {
             gtk_widget_destroy(file);
             goto label;
         }else {
             gtk_window_set_title(GTK_WINDOW(window),filename);
+            //gtk_label_set_text(label, filename);
         }
     }
     else {
@@ -296,6 +299,7 @@ static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
 }
 
 int main( int argc, char *argv[]){
+    GtkWidget *notebook;
     GtkWidget *menubar;
     GtkWidget *filemenu;
     GtkWidget *helpmenu;
@@ -426,8 +430,14 @@ int main( int argc, char *argv[]){
 
     statusbar = gtk_statusbar_new();
 
+    notebook = gtk_notebook_new();
+    GtkWidget *box = gtk_vbox_new(FALSE, 0);
+    label = gtk_label_new("Unsaved Document");
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
+
     gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), notebook, FALSE, FALSE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), scrolled, TRUE, TRUE, 5);
     gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, FALSE, 0);
 
@@ -435,15 +445,15 @@ int main( int argc, char *argv[]){
     g_signal_connect(G_OBJECT(about), \
             "button-press-event",G_CALLBACK(show_about), NULL);
     g_signal_connect(G_OBJECT(nopen), \
-            "button-press-event",G_CALLBACK(select_and_open_file), NULL);
+            "button-press-event",G_CALLBACK(select_and_open_file), label);
     g_signal_connect(G_OBJECT(nsave), \
-            "activate",G_CALLBACK(save_file), NULL);
+            "activate",G_CALLBACK(save_file), label);
     g_signal_connect(G_OBJECT(nnew), \
             "activate",G_CALLBACK(create_new_file), NULL);
     g_signal_connect(G_OBJECT(open), \
-            "clicked",G_CALLBACK(select_and_open_file), NULL);
+            "clicked",G_CALLBACK(select_and_open_file), label);
     g_signal_connect(G_OBJECT(save), \
-            "clicked",G_CALLBACK(save_file), NULL);
+            "clicked",G_CALLBACK(save_file), label);
     g_signal_connect(G_OBJECT(exit), \
             "clicked",G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(buffer, "changed", \
