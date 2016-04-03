@@ -49,7 +49,7 @@ static void set_buffer_language(const gchar * lang) {
     GtkSourceLanguageManager *lm;
     GtkSourceLanguage *language = NULL;
     lm = gtk_source_language_manager_new();
-    language = gtk_source_language_manager_get_language (lm, lang); //加载语言语法高亮格式  
+    language = gtk_source_language_manager_get_language (lm, lang); //加载语言语法高亮格式
     gtk_source_buffer_set_language(buffer, language);
 }
 
@@ -75,7 +75,7 @@ static void update_line_color(GtkWidget *view) {
 }
 
 static char * get_file_suffix(const gchar* filename) {
-    char *file_suffix = strrchr(filename, POINT); 
+    char *file_suffix = strrchr(filename, POINT);
     return file_suffix;
 }
 
@@ -118,7 +118,7 @@ label:
             }
             //size_t result = fwrite(text, 1, strlen(text), pFile);
             //if(result == strlen(text)) {
-            //    gtk_window_set_title(GTK_WINDOW(window),filename);                
+            //    gtk_window_set_title(GTK_WINDOW(window),filename);
             //    //printf("%s\n", "success");
             //}
             //fflush(pFile);
@@ -131,8 +131,9 @@ label:
 
 static void set_font(GtkWidget *widget, gchar *fontname) {
       PangoFontDescription *font_desc = pango_font_description_from_string(fontname);
-      pango_font_description_set_size (font_desc, 13 * PANGO_SCALE); 
+      pango_font_description_set_size (font_desc, 13 * PANGO_SCALE);
       gtk_widget_modify_font(widget, font_desc);
+      pango_font_description_free (font_desc);
 }
 
 static void select_font(GtkWidget *widget)
@@ -163,7 +164,7 @@ static void select_color(GtkWidget *widget, gpointer label)
         gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
         //gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
     }
-    gtk_widget_destroy(dialog); 
+    gtk_widget_destroy(dialog);
 }
 
 static void show_about(GtkWidget *widget, gpointer data)
@@ -328,7 +329,7 @@ int main( int argc, char *argv[]){
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     //gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
-    screen = gtk_window_get_screen( GTK_WINDOW(window )); 
+    screen = gtk_window_get_screen( GTK_WINDOW(window ));
     gtk_window_set_default_size(GTK_WINDOW(window),\
             gdk_screen_get_width(screen), gdk_screen_get_height(screen));
     gtk_window_set_title(GTK_WINDOW(window), "Notepad");
@@ -412,7 +413,7 @@ int main( int argc, char *argv[]){
     gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view),TRUE);//突显当前行
     gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(view),TRUE);
     gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(view),TRUE); //启动自动缩进的文本
-    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view),GTK_WRAP_CHAR); //设置自动换行的模式: 
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view),GTK_WRAP_CHAR); //设置自动换行的模式:
 
     //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
     //buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
@@ -459,7 +460,7 @@ int main( int argc, char *argv[]){
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
     update_line_color(view);
-    set_font(view, "Monospace");
+    set_font(view, "Monospace Italic");
     gtk_main();
     return 0;
 }
