@@ -160,7 +160,8 @@ static void select_color(GtkWidget *widget, gpointer label)
     if (result == GTK_RESPONSE_OK) {
         GdkColor color;
         colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dialog)->colorsel);
-        gdk_color_parse ("red", &color);
+        //gdk_color_parse ("red", &color);
+        gtk_color_selection_get_current_color(colorsel, &color);
         gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
         //gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
     }
