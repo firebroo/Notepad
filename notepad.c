@@ -14,17 +14,21 @@ GtkSourceBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
 GtkWidget *window;
-void button_event(GtkWidget *widget,gpointer *data)
-{
-    g_print("Button event:%s/n",data);
-}
 
 typedef enum _status {
     SUCCESS,FAIL
 } STATUS;
 
-static void create_new_file(GtkWidget *widget) {
+static void select_and_open_file(GtkWidget *widget, gpointer label);
+static void deal_switch_page(){}
 
+static void create_new_file(GtkWidget *widget, gpointer notebook) {
+    //GtkWidget *box = gtk_vbox_new(FALSE, 0);
+    //GtkWidget *label2 = gtk_label_new("Unsaved Document");
+    //gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label2);
+    //gtk_widget_show(box);
+    //gtk_widget_show(label2);
+    //select_and_open_file(NULL, label2);
 }
 
 
@@ -63,7 +67,7 @@ static STATUS _save_file(FILE *pFile, gchar *text, gpointer label){
     fclose(pFile);
     if(result == strlen(text)) {
         //gtk_window_set_title(GTK_WINDOW(window),filename);
-        gtk_label_set_text(label, filename);
+        gtk_label_set_text(GTK_LABEL(label), filename);
         return SUCCESS;
     }else{
         return FAIL;
@@ -243,10 +247,9 @@ static STATUS save_file(GtkWidget *widget, gpointer label)
     }
 }
 
-static int open_file(GtkWidget *file, gpointer label)
+static int open_file(GtkWidget *file)
 {
     GtkWidget *dialog;
-    //GtkWidget *label;
     GtkTextIter start,end;
     char *pBuf;
     filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(file));
@@ -268,11 +271,12 @@ static int open_file(GtkWidget *file, gpointer label)
         fclose(pFile);
         gtk_text_buffer_get_bounds(GTK_TEXT_BUFFER(buffer),&start,&end);
         //clear view
-        gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
-        gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
+        gtk_text_buffer_set_text(GTK_TEXT_BUFFER(buffer), pBuf, -1);
+        //gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
+        //gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
         free(pBuf);
         gtk_widget_destroy(file);
-        gtk_label_set_text(label, filename);
+        //gtk_label_set_text(GTK_LABEL(label), temp);
         return SUCCESS;
     }else {
         dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"Permission denied");
@@ -285,15 +289,19 @@ static int open_file(GtkWidget *file, gpointer label)
 static void select_and_open_file(GtkWidget *widget,gpointer label)
 {
     GtkWidget *file;
-label:
+select_file:
     file = gtk_file_chooser_dialog_new("SelectFile",NULL,GTK_FILE_CHOOSER_ACTION_OPEN, \
             GTK_STOCK_CANCEL,GTK_RESPONSE_CANCEL,GTK_STOCK_OK,GTK_RESPONSE_ACCEPT,NULL);
     if(gtk_dialog_run(GTK_DIALOG(file)) == GTK_RESPONSE_ACCEPT) {
-        STATUS result = open_file(file, label);
+        STATUS result = open_file(file);
         if(result == FAIL) {
             gtk_widget_destroy(file);
-            goto label;
+            goto select_file;
         }else {
+            if(filename) {
+                gchar *result = strrchr(filename, '/');
+                gtk_label_set_text(GTK_LABEL(label), result + 1);
+            }
             gtk_window_set_title(GTK_WINDOW(window),filename);
             //gtk_label_set_text(label, filename);
         }
@@ -470,7 +478,7 @@ int main( int argc, char *argv[]){
     g_signal_connect(G_OBJECT(nsave), \
             "activate",G_CALLBACK(save_file), label);
     g_signal_connect(G_OBJECT(nnew), \
-            "activate",G_CALLBACK(create_new_file), NULL);
+            "activate",G_CALLBACK(create_new_file), notebook);
     g_signal_connect(G_OBJECT(open), \
             "clicked",G_CALLBACK(select_and_open_file), label);
     g_signal_connect(G_OBJECT(save), \
@@ -487,10 +495,10 @@ int main( int argc, char *argv[]){
             "clicked", G_CALLBACK(select_color), NULL);
     g_signal_connect(G_OBJECT(font), \
             "clicked", G_CALLBACK(select_font), NULL);
+    g_signal_connect(notebook, \
+            "switch-page", G_CALLBACK(deal_switch_page), NULL);
     g_signal_connect_swapped(G_OBJECT(window), "destroy", \
             G_CALLBACK(gtk_main_quit), NULL);
-    gtk_signal_connect(GTK_OBJECT(label),\
-            "enter", GTK_SIGNAL_FUNC(button_event), "clicked");
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
     init_text_view();
