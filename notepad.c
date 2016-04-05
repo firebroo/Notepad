@@ -298,6 +298,12 @@ static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
     update_statusbar(buffer, GTK_STATUSBAR(data));
 }
 
+
+static void init_text_view(GtkWidget *view) {
+    update_line_color(view);
+    set_font(view, "Monospace Italic");
+}
+
 int main( int argc, char *argv[]){
     GtkWidget *notebook;
     GtkWidget *menubar;
@@ -470,8 +476,7 @@ int main( int argc, char *argv[]){
             G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
-    update_line_color(view);
-    set_font(view, "Monospace Italic");
+    init_text_view(view);
     gtk_main();
     return 0;
 }
