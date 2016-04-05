@@ -188,9 +188,16 @@ static void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     gchar *msg;
     gint row, col;
     GtkTextIter iter;
+    GtkTextMark *mark;
     gtk_statusbar_pop(statusbar, 0);
     gtk_text_buffer_get_iter_at_mark(GTK_TEXT_BUFFER(buffer), &iter,
             gtk_text_buffer_get_insert(GTK_TEXT_BUFFER(buffer)));
+
+    //gtk_text_buffer_get_end_iter (GTK_TEXT_BUFFER(buffer), &iter2);
+    //mark = gtk_text_buffer_get_mark (GTK_TEXT_BUFFER(buffer), "scroll");
+    //gtk_text_buffer_move_mark (GTK_TEXT_BUFFER(buffer), mark, &iter2);
+    //gtk_text_view_scroll_mark_onscreen (GTK_TEXT_VIEW(view), mark);
+
     row = gtk_text_iter_get_line(&iter);
     col = gtk_text_iter_get_line_offset(&iter);
     msg = g_strdup_printf("Col %d Ln %d", col+1, row+1);
@@ -299,7 +306,7 @@ static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
 }
 
 
-static void init_text_view(GtkWidget *view) {
+static void init_text_view() {
     update_line_color(view);
     set_font(view, "Monospace Italic");
 }
@@ -424,6 +431,7 @@ int main( int argc, char *argv[]){
     gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(view),TRUE);//突显当前行
     gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(view),TRUE);
     gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(view),TRUE); //启动自动缩进的文本
+    gtk_source_view_set_tab_width(GTK_SOURCE_VIEW(view), 4);
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view),GTK_WRAP_CHAR); //设置自动换行的模式:
 
     //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
@@ -432,7 +440,9 @@ int main( int argc, char *argv[]){
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled), \
             GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
     gtk_widget_grab_focus(view);
-    gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
+    gtk_container_add(GTK_CONTAINER(scrolled), view);
+    //follow cursor
+    //gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
 
     statusbar = gtk_statusbar_new();
 
@@ -476,7 +486,7 @@ int main( int argc, char *argv[]){
             G_CALLBACK(gtk_main_quit), NULL);
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
-    init_text_view(view);
+    init_text_view();
     gtk_main();
     return 0;
 }
