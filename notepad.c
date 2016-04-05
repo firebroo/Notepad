@@ -14,6 +14,10 @@ GtkSourceBuffer *buffer;
 gchar *filename;
 GtkWidget *view;
 GtkWidget *window;
+void button_event(GtkWidget *widget,gpointer *data)
+{
+    g_print("Button event:%s/n",data);
+}
 
 typedef enum _status {
     SUCCESS,FAIL
@@ -433,12 +437,13 @@ int main( int argc, char *argv[]){
     notebook = gtk_notebook_new();
     GtkWidget *box = gtk_vbox_new(FALSE, 0);
     label = gtk_label_new("Unsaved Document");
+    //label = gtk_button_new_with_label("Unsaved Document");
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
 
-    gtk_box_pack_start(GTK_BOX(vbox), menubar, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), notebook, FALSE, FALSE, 5);
-    gtk_box_pack_start(GTK_BOX(vbox), scrolled, TRUE, TRUE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), menubar,   FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), toolbar,   FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), notebook,  FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(vbox), scrolled,  TRUE,  TRUE,  5);
     gtk_box_pack_start(GTK_BOX(vbox), statusbar, FALSE, FALSE, 0);
 
     //gtk_widget_add_events(window, GDK_BUTTON_PRESS_MASK);
@@ -468,6 +473,8 @@ int main( int argc, char *argv[]){
             "clicked", G_CALLBACK(select_font), NULL);
     g_signal_connect_swapped(G_OBJECT(window), "destroy", \
             G_CALLBACK(gtk_main_quit), NULL);
+    gtk_signal_connect(GTK_OBJECT(label),\
+            "enter", GTK_SIGNAL_FUNC(button_event), "clicked");
     gtk_widget_show_all(window);
     update_statusbar(buffer, GTK_STATUSBAR (statusbar));
     update_line_color(view);
