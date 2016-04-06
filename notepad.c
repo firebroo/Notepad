@@ -1,28 +1,10 @@
-#include <gtk/gtk.h>
-#include <gdk/gdkkeysyms.h>
-#include <gtksourceview/gtksourceview.h>
-#include <gtksourceview/gtksourcebuffer.h>
-#include <gtksourceview/gtksourcelanguage.h>
-#include <gtksourceview/gtksourcelanguagemanager.h>
+#include "notepad.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#define POINT '.'
 
-GtkSourceBuffer *buffer;
-gchar *filename;
-GtkWidget *view;
-GtkWidget *window;
-
-typedef enum _status {
-    SUCCESS,FAIL
-} STATUS;
-
-static void select_and_open_file(GtkWidget *widget, gpointer label);
-static void deal_switch_page(){}
-
-static void create_new_file(GtkWidget *widget, gpointer notebook) {
+void create_new_file(GtkWidget *widget, gpointer notebook) {
     //GtkWidget *box = gtk_vbox_new(FALSE, 0);
     //GtkWidget *label2 = gtk_label_new("Unsaved Document");
     //gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label2);
@@ -31,8 +13,10 @@ static void create_new_file(GtkWidget *widget, gpointer notebook) {
     //select_and_open_file(NULL, label2);
 }
 
+void deal_switch_page(void){}
 
-static GdkPixbuf *create_pixbuf(const gchar *filename) {
+
+GdkPixbuf *create_pixbuf(const gchar *filename) {
     GdkPixbuf *pixbuf;
     GError *error = NULL;
     pixbuf  = gdk_pixbuf_new_from_file(filename, &error);
@@ -42,11 +26,11 @@ static GdkPixbuf *create_pixbuf(const gchar *filename) {
     }
 }
 
-static void set_buffer_language(const gchar * lang) {
+void set_buffer_language(const gchar * lang) {
     if(0 == strcmp(lang, "py")){
         lang = "python";
     }else if(0 == strcmp(lang, "js")) {
-        lang = "javascript";
+        lang = "js";
     }else if(0 == strcmp(lang, "hs")) {
         lang = "haskell";
     }else if(0 == strcmp(lang, "rb")) {
@@ -61,7 +45,7 @@ static void set_buffer_language(const gchar * lang) {
     gtk_source_buffer_set_language(buffer, language);
 }
 
-static STATUS _save_file(FILE *pFile, gchar *text, gpointer label){
+STATUS _save_file(FILE *pFile, gchar *text, gpointer label){
     size_t result = fwrite(text, 1, strlen(text), pFile);
     fflush(pFile);
     fclose(pFile);
@@ -76,19 +60,19 @@ static STATUS _save_file(FILE *pFile, gchar *text, gpointer label){
 }
 
 
-static void update_line_color(GtkWidget *view) {
+void update_line_color(GtkWidget *view) {
     GdkColor color;
     //line number default is orange
     gdk_color_parse ("Violet", &color);
     gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
 }
 
-static char * get_file_suffix(const gchar* filename) {
+char * get_file_suffix(const gchar* filename) {
     char *file_suffix = strrchr(filename, POINT);
     return file_suffix;
 }
 
-static gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog, gpointer label)
+gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog, gpointer label)
 {
     GtkWidget *top_dialog;
     //gchar *filename;
@@ -138,14 +122,14 @@ label:
     gtk_widget_destroy(top_dialog);
 }
 
-static void set_font(GtkWidget *widget, gchar *fontname) {
-      PangoFontDescription *font_desc = pango_font_description_from_string(fontname);
-      pango_font_description_set_size (font_desc, 13 * PANGO_SCALE);
-      gtk_widget_modify_font(widget, font_desc);
-      pango_font_description_free (font_desc);
+void set_font(GtkWidget *widget, gchar *fontname) {
+    PangoFontDescription *font_desc = pango_font_description_from_string(fontname);
+    pango_font_description_set_size (font_desc, 13 * PANGO_SCALE);
+    gtk_widget_modify_font(widget, font_desc);
+    pango_font_description_free (font_desc);
 }
 
-static void select_font(GtkWidget *widget)
+void select_font(GtkWidget *widget)
 {
     GtkResponseType result;
     GtkWidget *dialog = gtk_font_selection_dialog_new("Select Font");
@@ -160,7 +144,7 @@ static void select_font(GtkWidget *widget)
 }
 
 
-static void select_color(GtkWidget *widget, gpointer label)
+void select_color(GtkWidget *widget, gpointer label)
 {
     GtkResponseType result;
     GtkColorSelection *colorsel;
@@ -177,7 +161,7 @@ static void select_color(GtkWidget *widget, gpointer label)
     gtk_widget_destroy(dialog);
 }
 
-static void show_about(GtkWidget *widget, gpointer data)
+void show_about(GtkWidget *widget, gpointer data)
 {
     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file("icon.png", NULL);
     GtkWidget *dialog = gtk_about_dialog_new();
@@ -192,7 +176,7 @@ static void show_about(GtkWidget *widget, gpointer data)
     gtk_widget_destroy(dialog);
 }
 
-static void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
+void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     gchar *msg;
     gint row, col;
     GtkTextIter iter;
@@ -213,7 +197,7 @@ static void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar){
     g_free(msg);
 }
 
-static STATUS save_file(GtkWidget *widget, gpointer label)
+STATUS save_file(GtkWidget *widget, gpointer label)
 {
     GtkWidget *dialog;
     GtkTextIter start,end;
@@ -247,7 +231,7 @@ static STATUS save_file(GtkWidget *widget, gpointer label)
     }
 }
 
-static int open_file(GtkWidget *file)
+int open_file(GtkWidget *file)
 {
     GtkWidget *dialog;
     GtkTextIter start,end;
@@ -286,7 +270,7 @@ static int open_file(GtkWidget *file)
     }
 }
 
-static void select_and_open_file(GtkWidget *widget,gpointer label)
+void select_and_open_file(GtkWidget *widget,gpointer label)
 {
     GtkWidget *file;
 select_file:
@@ -312,13 +296,13 @@ select_file:
 }
 
 
-static void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
+void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
         *new_location, GtkTextMark *mark, gpointer data){
     update_statusbar(buffer, GTK_STATUSBAR(data));
 }
 
 
-static void init_text_view() {
+void init_text_view() {
     update_line_color(view);
     set_font(view, "Monospace Italic");
 }
