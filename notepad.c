@@ -34,24 +34,26 @@ create_pixbuf(const gchar *filename)
 }
 
 void
-set_buffer_language(const gchar * lang)
+set_buffer_language(const gchar *lang)
 {
-    if(0 == strcmp(lang, "py")){
+    GtkSourceLanguage        *language = NULL;
+    GtkSourceLanguageManager *lm;
+
+    if(0 == strcmp (lang, "py")){
         lang = "python";
-    }else if(0 == strcmp(lang, "js")) {
+    }else if(0 == strcmp (lang, "js")) {
         lang = "js";
-    }else if(0 == strcmp(lang, "hs")) {
+    }else if(0 == strcmp (lang, "hs")) {
         lang = "haskell";
-    }else if(0 == strcmp(lang, "rb")) {
+    }else if(0 == strcmp (lang, "rb")) {
         lang = "ruby";
     }else if(0 == strcmp(lang, "pl")) {
         lang = "perl";
     }
-    GtkSourceLanguageManager *lm;
-    GtkSourceLanguage *language = NULL;
+
     lm = gtk_source_language_manager_new();
     language = gtk_source_language_manager_get_language (lm, lang); //加载语言语法高亮格式
-    gtk_source_buffer_set_language(buffer, language);
+    gtk_source_buffer_set_language (buffer, language);
 }
 
 STATUS 
