@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-
 void 
 create_new_file(GtkWidget *widget, gpointer notebook)
 {
@@ -22,49 +21,53 @@ deal_switch_page(void)
 
 
 GdkPixbuf *
-create_pixbuf(const gchar *filename)
+create_pixbuf (const gchar *filename)
 {
-    GdkPixbuf *pixbuf;
-    GError *error = NULL;
-    pixbuf  = gdk_pixbuf_new_from_file(filename, &error);
-    if(!pixbuf) {
-        fprintf(stderr, "%s\n", error->message);
-        g_error_free(error);
+    GdkPixbuf  *pixbuf;
+    GError     *error = NULL;
+
+    pixbuf  = gdk_pixbuf_new_from_file (filename, &error);
+    if (!pixbuf) {
+        fprintf (stderr, "%s\n", error->message);
+        g_error_free (error);
     }
 }
 
 void
-set_buffer_language(const gchar *lang)
+set_buffer_language (const gchar *lang)
 {
     GtkSourceLanguage        *language = NULL;
     GtkSourceLanguageManager *lm;
 
-    if(0 == strcmp (lang, "py")){
+    if (0 == strcmp (lang, "py")) {
         lang = "python";
-    }else if(0 == strcmp (lang, "js")) {
+    } else if (0 == strcmp (lang, "js")) {
         lang = "js";
-    }else if(0 == strcmp (lang, "hs")) {
+    } else if (0 == strcmp (lang, "hs")) {
         lang = "haskell";
-    }else if(0 == strcmp (lang, "rb")) {
+    } else if (0 == strcmp (lang, "rb")) {
         lang = "ruby";
-    }else if(0 == strcmp(lang, "pl")) {
+    } else if (0 == strcmp(lang, "pl")) {
         lang = "perl";
     }
 
-    lm = gtk_source_language_manager_new();
-    language = gtk_source_language_manager_get_language (lm, lang); //加载语言语法高亮格式
+    lm = gtk_source_language_manager_new ();
+    language = gtk_source_language_manager_get_language (lm, lang); /*加载语言语法高亮格式*/
     gtk_source_buffer_set_language (buffer, language);
 }
 
 STATUS 
 write_buf (FILE *pFile, gchar *text, gpointer label)
 {
-    size_t  writen;
-    if ( (writen = fwrite(text, 1, strlen(text), pFile)) == strlen (text)) {
+    size_t  	writen;
+
+    if ( (writen = fwrite (text, 1, strlen(text), pFile)) == strlen (text)) {
         fflush(pFile);
         gtk_label_set_text(GTK_LABEL(label), filename);
+
         return SUCCESS;
     } 
+
     return FAIL;
 }
 
@@ -72,15 +75,17 @@ write_buf (FILE *pFile, gchar *text, gpointer label)
 void
 update_line_color (GtkWidget *view)
 {
-    GdkColor color;
+    GdkColor 	color;
+
     //line number default is orange
     gdk_color_parse ("Violet", &color);
-    gtk_widget_modify_fg(view, GTK_STATE_NORMAL, &color);
+    gtk_widget_modify_fg (view, GTK_STATE_NORMAL, &color);
 }
 
 gchar * 
-get_file_suffix(const gchar* filename) {
-    return strrchr(filename, POINT);
+get_file_suffix (const gchar* filename)
+{
+    return strrchr (filename, POINT);
 }
 
 gchar *
