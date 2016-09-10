@@ -3,20 +3,34 @@
 #include <string.h>
 #include <stdio.h>
 
+static int    i = 0;
+static char  *hash[1024];
+static int    page[1024];
+static guint  curr_page_num = 0;
+
 void 
 create_new_file(GtkWidget *widget, gpointer notebook)
 {
-    //GtkWidget *box = gtk_vbox_new(FALSE, 0);
-    //GtkWidget *label2 = gtk_label_new("Unsaved Document");
-    //gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label2);
-    //gtk_widget_show(box);
-    //gtk_widget_show(label2);
-    //select_and_open_file(NULL, label2);
+    i++;
+    curr_page_num = i;
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), curr_page_num);
+    GtkWidget *box = gtk_vbox_new(FALSE, 0);
+    GtkWidget *label = gtk_label_new("Unsaved Document");
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
+    gtk_widget_show(box);
+    gtk_widget_show(label);
+    select_and_open_file(NULL, label);
 }
 
 void 
-deal_switch_page(void)
+deal_switch_page(GtkNotebook *notebook, gpointer page, guint page_num, gpointer data)
 {
+    curr_page_num = page_num;
+    printf ("curr filename%s\n", filename);
+    if (hash[curr_page_num] != NULL) {
+        gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), hash[curr_page_num], -1);
+    }
+    return;
 }
 
 
@@ -303,10 +317,11 @@ open_file(GtkWidget *file)
 
             //gtk_text_buffer_get_bounds (GTK_TEXT_BUFFER (buffer), &start, &end);
             //clear view
+            hash[curr_page_num] = pBuf;
             gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), pBuf, -1);
             //gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
             //gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
-            free (pBuf);
+            //free (pBuf);
             gtk_widget_destroy (file);
             //gtk_label_set_text(GTK_LABEL(label), temp);
             return SUCCESS;
@@ -526,6 +541,10 @@ main( int argc, char *argv[])
     label = gtk_label_new ("Unsaved Document");
     //label = gtk_button_new_with_label("Unsaved Document");
     gtk_notebook_append_page (GTK_NOTEBOOK(notebook), box, label);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 0);
+
+    curr_page_num = 0;
+    hash[curr_page_num] = NULL;
 
     gtk_box_pack_start (GTK_BOX(vbox), menubar,   FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX(vbox), toolbar,   FALSE, FALSE, 0);
