@@ -8,13 +8,19 @@
 #define POINT '.'
 
 GtkSourceBuffer *buffer;
-gchar *filename;
 GtkWidget *view;
 GtkWidget *window;
+
+typedef struct {
+    gchar      *filename;
+    gchar      *content;
+    GtkWidget  *label;
+} OpendFile;
 
 typedef enum _status {
         SUCCESS,FAIL
 } STATUS;
+
 
 void select_and_open_file(GtkWidget *widget, gpointer label);
 
@@ -32,7 +38,7 @@ void update_line_color(GtkWidget *view);
 
 char * get_file_suffix(const gchar* filename);
 
-gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog, gpointer label);
+gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog);
 
 void set_font(GtkWidget *widget, gchar *fontname);
 
@@ -44,7 +50,7 @@ void show_about(GtkWidget *widget, gpointer data);
 
 void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar);
 
-STATUS save_file(GtkWidget *widget, gpointer label);
+STATUS save_file(GtkWidget *widget);
 
 int open_file(GtkWidget *file);
 

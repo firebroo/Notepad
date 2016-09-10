@@ -1,21 +1,30 @@
-#include "notepad.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-static int    i = 0;
-static char  *hash[1024];
-static int    page[1024];
-static guint  curr_page_num = 0;
+#include "notepad.h"
+
+static gint        i = 0;
+static OpendFile  *hash[1024];
+static guint       page[1024];
+static guint       curr_page_num = 0;
 
 void 
 create_new_file(GtkWidget *widget, gpointer notebook)
 {
     i++;
-    curr_page_num = i;
+    curr_page_num = i;  
+
+    (hash[curr_page_num]) = (OpendFile *) malloc (sizeof (OpendFile));
+    (hash[curr_page_num])->filename = NULL; 
+    (hash[curr_page_num])->content = NULL; 
+
     gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), curr_page_num);
     GtkWidget *box = gtk_vbox_new(FALSE, 0);
     GtkWidget *label = gtk_label_new("Unsaved Document");
+
+    (hash[curr_page_num])->label = label; 
+
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
     gtk_widget_show(box);
     gtk_widget_show(label);
@@ -26,9 +35,9 @@ void
 deal_switch_page(GtkNotebook *notebook, gpointer page, guint page_num, gpointer data)
 {
     curr_page_num = page_num;
-    printf ("curr filename%s\n", filename);
-    if (hash[curr_page_num] != NULL) {
-        gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), hash[curr_page_num], -1);
+    if ((hash[curr_page_num]) != NULL) {
+        gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), (hash[curr_page_num])->content, -1);
+        printf ("curr filename%s\n", (hash[curr_page_num])->filename);
     }
     return;
 }
@@ -71,13 +80,13 @@ set_buffer_language (const gchar *lang)
 }
 
 STATUS 
-write_buf (FILE *pFile, gchar *text, gpointer label)
+write_buf (FILE *pFile, gchar *text)
 {
     size_t  	writen;
 
     if ( (writen = fwrite (text, 1, strlen(text), pFile)) == strlen (text)) {
         fflush(pFile);
-        gtk_label_set_text(GTK_LABEL(label), filename);
+        gtk_label_set_text(GTK_LABEL((hash[curr_page_num])->label), (hash[curr_page_num])->filename);
 
         return SUCCESS;
     } 
@@ -104,14 +113,14 @@ get_file_suffix (const gchar* filename)
 
 gchar *
 gtk_show_file_save(GtkWidget* parent_window, gchar *text, 
-                   GtkWidget **dialog, gpointer label)
+                   GtkWidget **dialog)
 {
     FILE       *pFile;
     STATUS      status;
     GtkWidget  *top_dialog;
     gchar      *file_suffix;
 
-label:
+labe:
     top_dialog = gtk_file_chooser_dialog_new ("Save File",
                                               GTK_WINDOW(parent_window),
                                               GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -126,11 +135,11 @@ label:
     gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER (top_dialog), "Unsaved Document");
 
     if (gtk_dialog_run (GTK_DIALOG(top_dialog)) == GTK_RESPONSE_ACCEPT) {
-        filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (top_dialog));
-        if ( (file_suffix = get_file_suffix (filename))) {
+        (hash[curr_page_num])->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (top_dialog));
+        if ( (file_suffix = get_file_suffix ((hash[curr_page_num])->filename))) {
             set_buffer_language (file_suffix + 1);
         }
-        if ( (pFile = fopen (filename, "w")) == NULL) {
+        if ( (pFile = fopen ((hash[curr_page_num])->filename, "w")) == NULL) {
             *dialog = gtk_message_dialog_new (NULL,
                                               GTK_DIALOG_MODAL, 
                                               GTK_MESSAGE_ERROR,
@@ -139,9 +148,9 @@ label:
             gtk_dialog_run (GTK_DIALOG (*dialog));
             gtk_widget_destroy (*dialog);          /*destroy*/
             gtk_widget_destroy (top_dialog);
-            goto label;
+            goto labe;
         } else {
-            if ( (status = write_buf(pFile, text, label)) == SUCCESS ) {
+            if ( (status = write_buf(pFile, text)) == SUCCESS ) {
                 *dialog = gtk_message_dialog_new (NULL,
                                                   GTK_DIALOG_MODAL,
                                                   GTK_MESSAGE_INFO,
@@ -249,7 +258,7 @@ update_statusbar (GtkSourceBuffer *buffer, GtkStatusbar *statusbar)
 }
 
 STATUS
-save_file(GtkWidget *widget, gpointer label)
+save_file (GtkWidget *widget)
 {
     FILE        *pFile;
     gchar       *text;
@@ -259,15 +268,20 @@ save_file(GtkWidget *widget, gpointer label)
 
     gtk_text_buffer_get_bounds (GTK_TEXT_BUFFER(buffer), &start, &end);
     text = gtk_text_buffer_get_text (GTK_TEXT_BUFFER(buffer), &start, &end, TRUE);
-    if (filename) {
-        if ( (pFile = fopen(filename, "w")) == NULL) {
+    gchar *content = strdup (text);
+    if ((hash[curr_page_num])->content != NULL) {
+        free ((hash[curr_page_num])->content);
+    }   
+    (hash[curr_page_num])->content = content;
+    if ((hash[curr_page_num])->filename) {
+        if ( (pFile = fopen((hash[curr_page_num])->filename, "w")) == NULL) {
             dialog = gtk_message_dialog_new (NULL,
                                              GTK_DIALOG_MODAL,
                                              GTK_MESSAGE_ERROR,
                                              GTK_BUTTONS_OK,
                                              "Permission Denied");
         } else {
-            if ( (status = write_buf (pFile, text, label) == SUCCESS )) {
+            if ( (status = write_buf (pFile, text) == SUCCESS )) {
                 dialog = gtk_message_dialog_new (NULL,
                                                  GTK_DIALOG_MODAL,
                                                  GTK_MESSAGE_INFO,
@@ -279,7 +293,7 @@ save_file(GtkWidget *widget, gpointer label)
         gtk_dialog_run (GTK_DIALOG (dialog));
         gtk_widget_destroy (dialog);
     } else {
-        gtk_show_file_save (window, text, &dialog, label);
+        gtk_show_file_save (window, text, &dialog);
         //dialog = gtk_message_dialog_new(NULL,GTK_DIALOG_MODAL,GTK_MESSAGE_ERROR,GTK_BUTTONS_OK,"please fist open file");
     }
 }
@@ -295,13 +309,16 @@ open_file(GtkWidget *file)
     GtkTextIter  start, end;
     char        *file_suffix;
 
-    if ( (filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file))) == NULL) {
+    if (hash[curr_page_num] == NULL) {
+        hash[curr_page_num] = (OpendFile *) malloc (sizeof (OpendFile));
+    }   
+    if ( ((hash[curr_page_num])->filename = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (file))) == NULL) {
         return FAIL;
     }
-    if ( (file_suffix = get_file_suffix(filename))) {
+    if ( (file_suffix = get_file_suffix((hash[curr_page_num])->filename))) {
         set_buffer_language (file_suffix + 1);
     }
-    if ( (pFile = fopen (filename, "r"))) {
+    if ( (pFile = fopen ((hash[curr_page_num])->filename, "r"))) {
         fseek(pFile, 0, SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
         len = ftell (pFile);
         pBuf = (char *) malloc(len + 1);
@@ -317,7 +334,8 @@ open_file(GtkWidget *file)
 
             //gtk_text_buffer_get_bounds (GTK_TEXT_BUFFER (buffer), &start, &end);
             //clear view
-            hash[curr_page_num] = pBuf;
+            (hash[curr_page_num])->content = pBuf;
+
             gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), pBuf, -1);
             //gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
             //gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
@@ -342,7 +360,7 @@ open_file(GtkWidget *file)
 }
 
 void
-select_and_open_file (GtkWidget *widget,gpointer label)
+select_and_open_file (GtkWidget *widget, gpointer label)
 {
     GtkWidget   *file;
     STATUS       result;
@@ -359,12 +377,12 @@ select_file:
             gtk_widget_destroy(file);
             goto select_file;
         } else {
-            if (filename) {
-                gchar *result = strrchr(filename, '/');
+            if ((hash[curr_page_num])->filename) {
+                gchar *result = strrchr((hash[curr_page_num])->filename, '/');
                 gtk_label_set_text (GTK_LABEL (label), result + 1);
             }
-            gtk_window_set_title (GTK_WINDOW(window), filename);
-            //gtk_label_set_text(label, filename);
+            gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
+            gtk_label_set_text(label,(hash[curr_page_num])->filename);
         }
     } else {
         gtk_widget_destroy (file);
@@ -381,6 +399,7 @@ mark_set_callback (GtkSourceBuffer *buffer, const GtkTextIter \
 
 void
 init_text_view() {
+    //OpendFile * hash = (OpendFile *) calloc (sizeof (OpendFile), 1024);
     update_line_color (view);
     set_font (view, "Monospace Italic");
 }
@@ -544,7 +563,10 @@ main( int argc, char *argv[])
     gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 0);
 
     curr_page_num = 0;
-    hash[curr_page_num] = NULL;
+    hash[curr_page_num] = (OpendFile *) malloc (sizeof (OpendFile));
+    (hash[curr_page_num])->label = label ;
+    (hash[curr_page_num])->filename = NULL ;
+    (hash[curr_page_num])->content = NULL ;
 
     gtk_box_pack_start (GTK_BOX(vbox), menubar,   FALSE, FALSE, 5);
     gtk_box_pack_start (GTK_BOX(vbox), toolbar,   FALSE, FALSE, 0);
@@ -556,15 +578,15 @@ main( int argc, char *argv[])
     g_signal_connect (G_OBJECT (about), \
             "button-press-event", G_CALLBACK(show_about), NULL);
     g_signal_connect (G_OBJECT (nopen), \
-            "button-press-event", G_CALLBACK(select_and_open_file), label);
+            "button-press-event", G_CALLBACK(select_and_open_file), NULL);
     g_signal_connect (G_OBJECT (nsave), \
-            "activate",G_CALLBACK(save_file), label);
+            "activate",G_CALLBACK(save_file), NULL);
     g_signal_connect (G_OBJECT (nnew), \
             "activate",G_CALLBACK(create_new_file), notebook);
     g_signal_connect (G_OBJECT (open), \
-            "clicked",G_CALLBACK(select_and_open_file), label);
+            "clicked",G_CALLBACK(select_and_open_file), NULL);
     g_signal_connect (G_OBJECT (save), \
-            "clicked",G_CALLBACK(save_file), label);
+            "clicked",G_CALLBACK(save_file), NULL);
     g_signal_connect (G_OBJECT (exit), \
             "clicked",G_CALLBACK (gtk_main_quit), NULL);
     g_signal_connect (buffer, "changed", \
