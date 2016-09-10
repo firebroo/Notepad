@@ -22,7 +22,6 @@ typedef enum _status {
 } STATUS;
 
 
-void select_and_open_file(GtkWidget *widget, gpointer label);
 
 void deal_switch_page();
 
@@ -31,8 +30,6 @@ void create_new_file(GtkWidget *widget, gpointer notebook);
 GdkPixbuf *create_pixbuf(const gchar *filename);
 
 void set_buffer_language(const gchar * lang);
-
-STATUS _save_file(FILE *pFile, gchar *text, gpointer label);
 
 void update_line_color(GtkWidget *view);
 
@@ -44,7 +41,7 @@ void set_font(GtkWidget *widget, gchar *fontname);
 
 void select_font(GtkWidget *widget);
 
-void select_color(GtkWidget *widget, gpointer label);
+void select_color(GtkWidget *widget);
 
 void show_about(GtkWidget *widget, gpointer data);
 
@@ -54,7 +51,7 @@ STATUS save_file(GtkWidget *widget);
 
 int open_file(GtkWidget *file);
 
-void select_and_open_file(GtkWidget *widget,gpointer label);
+void select_and_open_file(GtkWidget *widget);
 
 void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
          *new_location, GtkTextMark *mark, gpointer data);

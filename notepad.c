@@ -28,7 +28,7 @@ create_new_file(GtkWidget *widget, gpointer notebook)
     gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
     gtk_widget_show(box);
     gtk_widget_show(label);
-    select_and_open_file(NULL, label);
+    select_and_open_file(NULL);
 }
 
 void 
@@ -196,7 +196,7 @@ void select_font (GtkWidget *widget)
 
 
 void
-select_color(GtkWidget *widget, gpointer label)
+select_color(GtkWidget *widget)
 {
     GtkResponseType     result;
     GtkColorSelection  *colorsel;
@@ -360,7 +360,7 @@ open_file(GtkWidget *file)
 }
 
 void
-select_and_open_file (GtkWidget *widget, gpointer label)
+select_and_open_file (GtkWidget *widget)
 {
     GtkWidget   *file;
     STATUS       result;
@@ -379,10 +379,10 @@ select_file:
         } else {
             if ((hash[curr_page_num])->filename) {
                 gchar *result = strrchr((hash[curr_page_num])->filename, '/');
-                gtk_label_set_text (GTK_LABEL (label), result + 1);
+                gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), result + 1);
             }
             gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
-            gtk_label_set_text(label,(hash[curr_page_num])->filename);
+            gtk_label_set_text((GtkLabel *)(hash[curr_page_num])->label, (hash[curr_page_num])->filename);
         }
     } else {
         gtk_widget_destroy (file);
