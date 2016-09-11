@@ -6,10 +6,7 @@
 #include <gtksourceview/gtksourcelanguagemanager.h>
 
 #define POINT '.'
-
-GtkSourceBuffer *buffer;
-GtkWidget *view;
-GtkWidget *window;
+#define maxPage 1024
 
 typedef struct {
     gchar      *filename;
@@ -18,7 +15,8 @@ typedef struct {
 } OpendFile;
 
 typedef enum _status {
-        SUCCESS,FAIL
+    SUCCESS,
+    FAIL,
 } STATUS;
 
 

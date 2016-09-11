@@ -4,42 +4,54 @@
 
 #include "notepad.h"
 
-static gint        i = 0;
-static OpendFile  *hash[1024];
-static guint       page[1024];
-static guint       curr_page_num = 0;
+static gint             last_page = 0;
+static guint            curr_page_num = 0;
+static GtkWidget        *view;
+static GtkWidget        *window;
+static OpendFile        *hash[maxPage];
+static GtkSourceBuffer  *buffer;
 
 void 
-create_new_file(GtkWidget *widget, gpointer notebook)
+create_new_file (GtkWidget *widget, gpointer notebook)
 {
-    i++;
-    curr_page_num = i;  
+    GtkWidget   *box;
+    GtkWidget   *label;
+
+    last_page++;
+    curr_page_num = last_page;  
 
     (hash[curr_page_num]) = (OpendFile *) malloc (sizeof (OpendFile));
     (hash[curr_page_num])->filename = NULL; 
     (hash[curr_page_num])->content = NULL; 
 
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), curr_page_num);
-    GtkWidget *box = gtk_vbox_new(FALSE, 0);
-    GtkWidget *label = gtk_label_new("Unsaved Document");
+    box  = gtk_vbox_new (FALSE, 0);
+    label  = gtk_label_new ("Unsaved Document");
 
     (hash[curr_page_num])->label = label; 
 
-    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), box, label);
-    gtk_widget_show(box);
-    gtk_widget_show(label);
-    select_and_open_file(NULL);
+    gtk_notebook_append_page (GTK_NOTEBOOK(notebook), box, label);
+    select_and_open_file (NULL);
+    gtk_widget_show (box);
+    gtk_widget_show (label);
 }
 
 void 
-deal_switch_page(GtkNotebook *notebook, gpointer page, guint page_num, gpointer data)
+deal_switch_page (GtkNotebook *notebook, gpointer page, 
+                  guint page_num, gpointer data)
 {
+    gchar   *file_suffix;
+
     curr_page_num = page_num;
     if ((hash[curr_page_num]) != NULL) {
-        gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), (hash[curr_page_num])->content, -1);
-        printf ("curr filename%s\n", (hash[curr_page_num])->filename);
-    }
-    return;
+        if ((hash[curr_page_num])->content != NULL) {
+            gtk_text_buffer_set_text (GTK_TEXT_BUFFER (buffer),
+                                      (hash[curr_page_num])->content,
+                                      -1);
+            if ( (file_suffix = get_file_suffix ((hash[curr_page_num])->filename))) {
+                set_buffer_language (file_suffix + 1);
+            }
+        }
+    } 
 }
 
 
@@ -54,6 +66,8 @@ create_pixbuf (const gchar *filename)
         fprintf (stderr, "%s\n", error->message);
         g_error_free (error);
     }
+
+    return pixbuf;
 }
 
 void
@@ -84,10 +98,9 @@ write_buf (FILE *pFile, gchar *text)
 {
     size_t  	writen;
 
-    if ( (writen = fwrite (text, 1, strlen(text), pFile)) == strlen (text)) {
-        fflush(pFile);
-        gtk_label_set_text(GTK_LABEL((hash[curr_page_num])->label), (hash[curr_page_num])->filename);
-
+    if ( (writen = fwrite (text, 1, strlen (text), pFile)) == strlen (text)) {
+        fflush (pFile);
+        gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), (hash[curr_page_num])->filename);
         return SUCCESS;
     } 
 
@@ -559,8 +572,8 @@ main( int argc, char *argv[])
     box = gtk_vbox_new (FALSE, 0);
     label = gtk_label_new ("Unsaved Document");
     //label = gtk_button_new_with_label("Unsaved Document");
-    gtk_notebook_append_page (GTK_NOTEBOOK(notebook), box, label);
-    gtk_notebook_set_current_page(GTK_NOTEBOOK(notebook), 0);
+    gtk_notebook_append_page (GTK_NOTEBOOK (notebook), box, label);
+    gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), 0);
 
     curr_page_num = 0;
     hash[curr_page_num] = (OpendFile *) malloc (sizeof (OpendFile));
@@ -583,26 +596,28 @@ main( int argc, char *argv[])
             "activate",G_CALLBACK(save_file), NULL);
     g_signal_connect (G_OBJECT (nnew), \
             "activate",G_CALLBACK(create_new_file), notebook);
+    g_signal_connect (G_OBJECT (new), \
+            "clicked",G_CALLBACK(create_new_file), notebook);
     g_signal_connect (G_OBJECT (open), \
             "clicked",G_CALLBACK(select_and_open_file), NULL);
     g_signal_connect (G_OBJECT (save), \
             "clicked",G_CALLBACK(save_file), NULL);
     g_signal_connect (G_OBJECT (exit), \
             "clicked",G_CALLBACK (gtk_main_quit), NULL);
-    g_signal_connect (buffer, "changed", \
-            G_CALLBACK(update_statusbar), statusbar);
-    g_signal_connect_object (buffer,  \
-            "mark_set",G_CALLBACK (mark_set_callback), statusbar, 0);
+    g_signal_connect (buffer, \
+            "changed", G_CALLBACK(update_statusbar), statusbar);
+    g_signal_connect_object (buffer, \
+            "mark_set", G_CALLBACK (mark_set_callback), statusbar, 0);
     g_signal_connect (G_OBJECT(quit), \
             "activate", G_CALLBACK (gtk_main_quit), NULL);
     g_signal_connect (G_OBJECT(color), \
             "clicked", G_CALLBACK (select_color), NULL);
     g_signal_connect (G_OBJECT(font), \
             "clicked", G_CALLBACK (select_font), NULL);
-    g_signal_connect(notebook, \
+    g_signal_connect (notebook, \
             "switch-page", G_CALLBACK (deal_switch_page), NULL);
-    g_signal_connect_swapped (G_OBJECT (window), "destroy", \
-            G_CALLBACK (gtk_main_quit), NULL);
+    g_signal_connect_swapped (G_OBJECT (window), \
+            "destroy", G_CALLBACK (gtk_main_quit), NULL);
     gtk_widget_show_all (window);
     update_statusbar (buffer, GTK_STATUSBAR (statusbar));
     init_text_view ();
