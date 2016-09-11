@@ -26,6 +26,8 @@ create_new_file (GtkWidget *widget, gpointer notebook)
 
     box  = gtk_vbox_new (FALSE, 0);
     label  = gtk_label_new ("Unsaved Document");
+    gtk_label_set_width_chars(GTK_LABEL(label), 30);
+    gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
 
     (hash[curr_page_num])->label = label; 
 
@@ -47,6 +49,7 @@ deal_switch_page (GtkNotebook *notebook, gpointer page,
             gtk_text_buffer_set_text (GTK_TEXT_BUFFER (buffer),
                                       (hash[curr_page_num])->content,
                                       -1);
+            gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
             if ( (file_suffix = get_file_suffix ((hash[curr_page_num])->filename))) {
                 set_buffer_language (file_suffix + 1);
             }
@@ -100,7 +103,8 @@ write_buf (FILE *pFile, gchar *text)
 
     if ( (writen = fwrite (text, 1, strlen (text), pFile)) == strlen (text)) {
         fflush (pFile);
-        gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), (hash[curr_page_num])->filename);
+        gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), strrchr (((hash[curr_page_num])->filename), '/') + 1);
+        gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
         return SUCCESS;
     } 
 
@@ -312,7 +316,7 @@ save_file (GtkWidget *widget)
 }
 
 int
-open_file(GtkWidget *file)
+open_file (GtkWidget *file)
 {
     long         len;
     FILE        *pFile;
@@ -393,9 +397,9 @@ select_file:
             if ((hash[curr_page_num])->filename) {
                 gchar *result = strrchr((hash[curr_page_num])->filename, '/');
                 gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), result + 1);
+                gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
             }
-            gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
-            gtk_label_set_text((GtkLabel *)(hash[curr_page_num])->label, (hash[curr_page_num])->filename);
+            //gtk_label_set_text((GtkLabel *)(hash[curr_page_num])->label, strrchr ((hash[curr_page_num])->filename, '/') + 1);
         }
     } else {
         gtk_widget_destroy (file);
@@ -570,7 +574,11 @@ main( int argc, char *argv[])
 
     notebook = gtk_notebook_new ();
     box = gtk_vbox_new (FALSE, 0);
+
     label = gtk_label_new ("Unsaved Document");
+    gtk_label_set_width_chars(GTK_LABEL(label), 30);
+    gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
+
     //label = gtk_button_new_with_label("Unsaved Document");
     gtk_notebook_append_page (GTK_NOTEBOOK (notebook), box, label);
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), 0);
