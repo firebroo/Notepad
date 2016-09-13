@@ -156,7 +156,7 @@ labe:
         if ( (file_suffix = get_file_suffix ((hash[curr_page_num])->filename))) {
             set_buffer_language (file_suffix + 1);
         }
-        if ( (pFile = fopen ((hash[curr_page_num])->filename, "w")) == NULL) {
+        if ( (pFile = fopen ((hash[curr_page_num])->filename, "wb")) == NULL) {
             *dialog = gtk_message_dialog_new (NULL,
                                               GTK_DIALOG_MODAL, 
                                               GTK_MESSAGE_ERROR,
@@ -291,7 +291,7 @@ save_file (GtkWidget *widget)
     }   
     (hash[curr_page_num])->content = content;
     if ((hash[curr_page_num])->filename) {
-        if ( (pFile = fopen((hash[curr_page_num])->filename, "w")) == NULL) {
+        if ( (pFile = fopen((hash[curr_page_num])->filename, "wb")) == NULL) {
             dialog = gtk_message_dialog_new (NULL,
                                              GTK_DIALOG_MODAL,
                                              GTK_MESSAGE_ERROR,
@@ -318,13 +318,13 @@ save_file (GtkWidget *widget)
 int
 open_file (GtkWidget *file)
 {
-    long         len;
-    FILE        *pFile;
-    char        *pBuf;
-    size_t       readn;
-    GtkWidget   *dialog;
-    GtkTextIter  start, end;
-    char        *file_suffix;
+    long           len;
+    FILE          *pFile;
+    unsigned char *pBuf;
+    size_t         readn;
+    GtkWidget     *dialog;
+    GtkTextIter    start, end;
+    char          *file_suffix;
 
     if (hash[curr_page_num] == NULL) {
         hash[curr_page_num] = (OpendFile *) malloc (sizeof (OpendFile));
@@ -335,12 +335,12 @@ open_file (GtkWidget *file)
     if ( (file_suffix = get_file_suffix((hash[curr_page_num])->filename))) {
         set_buffer_language (file_suffix + 1);
     }
-    if ( (pFile = fopen ((hash[curr_page_num])->filename, "r"))) {
-        fseek(pFile, 0, SEEK_END); //把指针移动到文件的结尾 ，获取文件长度
+    if ( (pFile = fopen ((hash[curr_page_num])->filename, "rb"))) {
+        fseek (pFile, 0, SEEK_END); /*把指针移动到文件的结尾 ，获取文件长度*/
         len = ftell (pFile);
-        pBuf = (char *) malloc(len + 1);
+        pBuf = (char *) malloc (len + 1);
         if (pBuf == NULL) {
-            fprintf(stderr, "out of memory\n");
+            fprintf (stderr, "out of memory\n");
             exit(-1);
         }
         rewind (pFile);
@@ -353,7 +353,7 @@ open_file (GtkWidget *file)
             //clear view
             (hash[curr_page_num])->content = pBuf;
 
-            gtk_text_buffer_set_text (GTK_TEXT_BUFFER(buffer), pBuf, -1);
+            gtk_text_buffer_set_text (GTK_TEXT_BUFFER (buffer), pBuf, -1);
             //gtk_text_buffer_delete(GTK_TEXT_BUFFER(buffer), &start, &end);
             //gtk_text_buffer_insert(GTK_TEXT_BUFFER(buffer),&start,pBuf,strlen(pBuf));
             //free (pBuf);

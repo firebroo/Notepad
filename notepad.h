@@ -10,7 +10,7 @@
 
 typedef struct {
     gchar      *filename;
-    gchar      *content;
+    guchar      *content;
     GtkWidget  *label;
 } OpendFile;
 
