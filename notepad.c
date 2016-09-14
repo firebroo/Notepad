@@ -4,7 +4,7 @@
 
 #include "notepad.h"
 
-static gint             last_page = 0;
+static guint            last_page = 0;
 static guint            curr_page_num = 0;
 
 static GtkWidget        *view;
@@ -15,6 +15,31 @@ static OpendFile        *hash[maxPage];
 
 static GdkAtom           atom;
 static GtkClipboard     *clipboard;
+
+void
+close_label (GtkWidget *widget, gpointer notebook)
+{
+    guint    tmp_page;
+
+    if (last_page == 0)
+        return;
+
+    tmp_page = curr_page_num;
+
+    free ((hash[curr_page_num])->content);
+    (hash[curr_page_num])->filename = (hash[curr_page_num])->content = NULL;
+    hash[curr_page_num] = NULL;
+
+    gtk_notebook_remove_page (notebook, curr_page_num); /*curr_page_num will auto sub 1*/
+
+    /*reset page hash table*/
+    while (tmp_page < last_page) {
+        hash[tmp_page] = hash[tmp_page + 1];
+        tmp_page++;
+    }
+
+    last_page--;
+}
 
 void
 gtk_notepad_cut (void)
@@ -487,6 +512,7 @@ main( int argc, char *argv[])
     GtkWidget                *nnew;
     GtkWidget                *nopen;
     GtkWidget                *nsave;
+    GtkWidget                *close;
     GtkWidget                *sep;
     GtkWidget                *sw;
     GtkWidget                *about;
@@ -548,23 +574,46 @@ main( int argc, char *argv[])
 
     /*File menu*/
     file = gtk_menu_item_new_with_mnemonic ("_File");
-    nopen = gtk_image_menu_item_new_from_stock (GTK_STOCK_OPEN, NULL);
-    nnew = gtk_image_menu_item_new_from_stock (GTK_STOCK_NEW, NULL);
+    nopen = gtk_image_menu_item_new_from_stock (GTK_STOCK_OPEN, accel_group);
+    nnew  = gtk_image_menu_item_new_from_stock (GTK_STOCK_NEW, accel_group);
     sep = gtk_separator_menu_item_new ();
-    quit = gtk_image_menu_item_new_from_stock (GTK_STOCK_QUIT, accel_group);
+    quit  = gtk_image_menu_item_new_from_stock (GTK_STOCK_QUIT, accel_group);
     nsave = gtk_image_menu_item_new_from_stock (GTK_STOCK_SAVE, accel_group);
-    gtk_widget_add_accelerator (quit, 
+    close = gtk_image_menu_item_new_from_stock (GTK_STOCK_CLOSE, accel_group);
+    gtk_widget_add_accelerator (nopen, 
                                 "activate",
                                 accel_group,
-                                GDK_q,
+                                GDK_o,
                                 GDK_CONTROL_MASK,
                                 GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (nnew, 
+                                "activate",
+                                accel_group,
+                                GDK_n,
+                                GDK_CONTROL_MASK,
+                                GTK_ACCEL_VISIBLE);
+
 
     gtk_widget_add_accelerator (nsave,
                                 "activate",
                                 accel_group,
                                 GDK_s,
                                 GDK_CONTROL_MASK, 
+                                GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (close,
+                                "activate",
+                                accel_group,
+                                GDK_w,
+                                GDK_CONTROL_MASK, 
+                                GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (quit, 
+                                "activate",
+                                accel_group,
+                                GDK_q,
+                                GDK_CONTROL_MASK,
                                 GTK_ACCEL_VISIBLE);
 
 
@@ -629,6 +678,7 @@ main( int argc, char *argv[])
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), nopen);
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), nnew);
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), nsave);
+    gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), close);
     //分割线
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), sep);
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), quit);
@@ -700,18 +750,20 @@ main( int argc, char *argv[])
             "button-press-event", G_CALLBACK(show_about), NULL);
     g_signal_connect (G_OBJECT (nopen), \
             "button-press-event", G_CALLBACK(select_and_open_file), NULL);
-    g_signal_connect (G_OBJECT (nsave), \
-            "activate",G_CALLBACK(save_file), NULL);
     g_signal_connect (G_OBJECT (nnew), \
-            "activate",G_CALLBACK(create_new_file), notebook);
-    g_signal_connect (G_OBJECT (new), \
-            "clicked",G_CALLBACK(create_new_file), notebook);
-    g_signal_connect (G_OBJECT (open), \
-            "clicked",G_CALLBACK(select_and_open_file), NULL);
-    g_signal_connect (G_OBJECT (save), \
-            "clicked",G_CALLBACK(save_file), NULL);
+            "activate", G_CALLBACK(create_new_file), notebook);
+    g_signal_connect (G_OBJECT (nsave), \
+            "activate", G_CALLBACK(save_file), NULL);
+    g_signal_connect (G_OBJECT (close), \
+            "activate", G_CALLBACK(close_label), notebook);
     g_signal_connect (G_OBJECT (exit), \
-            "clicked",G_CALLBACK (gtk_main_quit), NULL);
+            "clicked", G_CALLBACK (gtk_main_quit), NULL);
+    g_signal_connect (G_OBJECT (new), \
+            "clicked", G_CALLBACK(create_new_file), notebook);
+    g_signal_connect (G_OBJECT (open), \
+            "clicked", G_CALLBACK(select_and_open_file), NULL);
+    g_signal_connect (G_OBJECT (save), \
+            "clicked", G_CALLBACK(save_file), NULL);
     g_signal_connect (buffer, \
             "changed", G_CALLBACK(update_statusbar), statusbar);
     g_signal_connect_object (buffer, \

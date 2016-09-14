@@ -20,6 +20,7 @@ typedef enum _status {
 } STATUS;
 
 
+void close_label (GtkWidget *widget, gpointer notebook);
 
 void gtk_notepad_cut (void);
 
