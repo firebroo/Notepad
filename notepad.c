@@ -6,16 +6,61 @@
 
 static gint             last_page = 0;
 static guint            curr_page_num = 0;
+
 static GtkWidget        *view;
 static GtkWidget        *window;
-static OpendFile        *hash[maxPage];
 static GtkSourceBuffer  *buffer;
+
+static OpendFile        *hash[maxPage];
+
+static GdkAtom           atom;
+static GtkClipboard     *clipboard;
+
+void
+gtk_notepad_cut (void)
+{
+    gtk_text_buffer_cut_clipboard (GTK_TEXT_BUFFER (buffer), clipboard, TRUE);
+}
+
+
+void
+gtk_notepad_copy (void)
+{
+    gtk_text_buffer_copy_clipboard (GTK_TEXT_BUFFER (buffer), clipboard);
+}
+
+
+void
+gtk_notepad_paste (void)
+{
+    gtk_text_buffer_paste_clipboard (GTK_TEXT_BUFFER (buffer), clipboard, NULL, TRUE);
+}
+
+
+void 
+gtk_notepad_delete (void)
+{
+    gtk_text_buffer_delete_selection (GTK_TEXT_BUFFER (buffer), TRUE, TRUE);
+}
+
+
+void 
+gtk_notepad_select_all (void)
+{
+    GtkTextIter     start;
+    GtkTextIter     end;
+
+    gtk_text_buffer_get_start_iter (GTK_TEXT_BUFFER (buffer), &start);
+    gtk_text_buffer_get_end_iter (GTK_TEXT_BUFFER (buffer), &end);
+       
+    gtk_text_buffer_select_range (GTK_TEXT_BUFFER (buffer), &start, &end);
+}
 
 void 
 create_new_file (GtkWidget *widget, gpointer notebook)
 {
-    GtkWidget   *box;
-    GtkWidget   *label;
+    GtkWidget     *box;
+    GtkWidget     *label;
 
     last_page++;
     curr_page_num = last_page;  
@@ -26,12 +71,12 @@ create_new_file (GtkWidget *widget, gpointer notebook)
 
     box  = gtk_vbox_new (FALSE, 0);
     label  = gtk_label_new ("Unsaved Document");
-    gtk_label_set_width_chars(GTK_LABEL(label), 30);
-    gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
+    gtk_label_set_width_chars (GTK_LABEL (label), 30);
+    gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_LEFT);
 
     (hash[curr_page_num])->label = label; 
 
-    gtk_notebook_append_page (GTK_NOTEBOOK(notebook), box, label);
+    gtk_notebook_append_page (GTK_NOTEBOOK (notebook), box, label);
     select_and_open_file (NULL);
     gtk_widget_show (box);
     gtk_widget_show (label);
@@ -49,7 +94,7 @@ deal_switch_page (GtkNotebook *notebook, gpointer page,
             gtk_text_buffer_set_text (GTK_TEXT_BUFFER (buffer),
                                       (hash[curr_page_num])->content,
                                       -1);
-            gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
+            gtk_window_set_title (GTK_WINDOW (window), (hash[curr_page_num])->filename);
             if ( (file_suffix = get_file_suffix ((hash[curr_page_num])->filename))) {
                 set_buffer_language (file_suffix + 1);
             }
@@ -103,7 +148,8 @@ write_buf (FILE *pFile, gchar *text)
 
     if ( (writen = fwrite (text, 1, strlen (text), pFile)) == strlen (text)) {
         fflush (pFile);
-        gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), strrchr (((hash[curr_page_num])->filename), '/') + 1);
+        gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label),
+                            strrchr (((hash[curr_page_num])->filename), '/') + 1);
         gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
         return SUCCESS;
     } 
@@ -129,7 +175,7 @@ get_file_suffix (const gchar* filename)
 }
 
 gchar *
-gtk_show_file_save(GtkWidget* parent_window, gchar *text, 
+gtk_show_file_save (GtkWidget* parent_window, gchar *text, 
                    GtkWidget **dialog)
 {
     FILE       *pFile;
@@ -137,7 +183,7 @@ gtk_show_file_save(GtkWidget* parent_window, gchar *text,
     GtkWidget  *top_dialog;
     gchar      *file_suffix;
 
-labe:
+label:
     top_dialog = gtk_file_chooser_dialog_new ("Save File",
                                               GTK_WINDOW(parent_window),
                                               GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -165,7 +211,7 @@ labe:
             gtk_dialog_run (GTK_DIALOG (*dialog));
             gtk_widget_destroy (*dialog);          /*destroy*/
             gtk_widget_destroy (top_dialog);
-            goto labe;
+            goto label;
         } else {
             if ( (status = write_buf(pFile, text)) == SUCCESS ) {
                 *dialog = gtk_message_dialog_new (NULL,
@@ -213,7 +259,7 @@ void select_font (GtkWidget *widget)
 
 
 void
-select_color(GtkWidget *widget)
+select_color (GtkWidget *widget)
 {
     GtkResponseType     result;
     GtkColorSelection  *colorsel;
@@ -254,7 +300,8 @@ void
 update_statusbar (GtkSourceBuffer *buffer, GtkStatusbar *statusbar)
 {
     gchar        *msg;
-    gint          row, col;
+    gint          row;
+    gint          col;
     GtkTextIter   iter;
     GtkTextMark  *mark;
 
@@ -262,14 +309,9 @@ update_statusbar (GtkSourceBuffer *buffer, GtkStatusbar *statusbar)
     gtk_text_buffer_get_iter_at_mark (GTK_TEXT_BUFFER(buffer), &iter,
             gtk_text_buffer_get_insert (GTK_TEXT_BUFFER(buffer)));
 
-    //gtk_text_buffer_get_end_iter (GTK_TEXT_BUFFER(buffer), &iter2);
-    //mark = gtk_text_buffer_get_mark (GTK_TEXT_BUFFER(buffer), "scroll");
-    //gtk_text_buffer_move_mark (GTK_TEXT_BUFFER(buffer), mark, &iter2);
-    //gtk_text_view_scroll_mark_onscreen (GTK_TEXT_VIEW(view), mark);
-
     row = gtk_text_iter_get_line (&iter);
     col = gtk_text_iter_get_line_offset (&iter);
-    msg = g_strdup_printf ("Col %d Ln %d", col + 1, row + 1);
+    msg = g_strdup_printf ("row %d col %d", row + 1, col + 1);
     gtk_statusbar_push (statusbar, 0, msg);
     g_free (msg);
 }
@@ -320,11 +362,11 @@ open_file (GtkWidget *file)
 {
     long           len;
     FILE          *pFile;
-    unsigned char *pBuf;
+    guchar        *pBuf;
     size_t         readn;
     GtkWidget     *dialog;
     GtkTextIter    start, end;
-    char          *file_suffix;
+    gchar         *file_suffix;
 
     if (hash[curr_page_num] == NULL) {
         hash[curr_page_num] = (OpendFile *) malloc (sizeof (OpendFile));
@@ -338,7 +380,7 @@ open_file (GtkWidget *file)
     if ( (pFile = fopen ((hash[curr_page_num])->filename, "rb"))) {
         fseek (pFile, 0, SEEK_END); /*把指针移动到文件的结尾 ，获取文件长度*/
         len = ftell (pFile);
-        pBuf = (char *) malloc (len + 1);
+        pBuf = (gchar *) malloc (len + 1);
         if (pBuf == NULL) {
             fprintf (stderr, "out of memory\n");
             exit(-1);
@@ -395,7 +437,7 @@ select_file:
             goto select_file;
         } else {
             if ((hash[curr_page_num])->filename) {
-                gchar *result = strrchr((hash[curr_page_num])->filename, '/');
+                gchar *result = strrchr ((hash[curr_page_num])->filename, '/');
                 gtk_label_set_text (GTK_LABEL ((hash[curr_page_num])->label), result + 1);
                 gtk_window_set_title (GTK_WINDOW(window), (hash[curr_page_num])->filename);
             }
@@ -410,13 +452,14 @@ select_file:
 void
 mark_set_callback (GtkSourceBuffer *buffer, const GtkTextIter \
         *new_location, GtkTextMark *mark, gpointer data){
-    update_statusbar (buffer, GTK_STATUSBAR(data));
+    update_statusbar (buffer, GTK_STATUSBAR (data));
 }
 
 
 void
 init_text_view() {
-    //OpendFile * hash = (OpendFile *) calloc (sizeof (OpendFile), 1024);
+    atom = gdk_atom_intern ("CLIPBOARD", TRUE);
+    clipboard = gtk_clipboard_get (atom); /* get primary clipboard) */
     update_line_color (view);
     set_font (view, "Monospace Italic");
 }
@@ -428,6 +471,7 @@ main( int argc, char *argv[])
     GtkWidget                *notebook;
     GtkWidget                *menubar;
     GtkWidget                *filemenu;
+    GtkWidget                *editmenu;
     GtkWidget                *helpmenu;
     GtkWidget                *tog_stat;
     GtkWidget                *statusbar;
@@ -446,6 +490,12 @@ main( int argc, char *argv[])
     GtkWidget                *sep;
     GtkWidget                *sw;
     GtkWidget                *about;
+    GtkWidget                *edit;
+    GtkWidget                *cut;
+    GtkWidget                *copy;
+    GtkWidget                *paste;
+    GtkWidget                *delete;
+    GtkWidget                *selectall;
     GtkToolItem              *open;
     GtkToolItem              *new;
     GtkToolItem              *save;
@@ -455,7 +505,7 @@ main( int argc, char *argv[])
     GtkAccelGroup            *accel_group = NULL;
     GdkScreen                *screen;
     GtkSourceLanguage        *language = NULL; /* 创建一个GtkSourceLanguagesManager 管理标记语言 */
-    GtkSourceLanguageManager *lm; /* 管理 */
+    GtkSourceLanguageManager *lm;             /* 管理 */
 
 
     gtk_init (&argc, &argv);
@@ -469,13 +519,6 @@ main( int argc, char *argv[])
     gtk_window_set_title (GTK_WINDOW (window), "Notepad");
     gtk_window_set_icon (GTK_WINDOW (window), create_pixbuf ("icon.png"));
     gtk_container_set_border_width (GTK_CONTAINER (window), 5);
-
-    //sw = gtk_scrolled_window_new(NULL, NULL);
-    //gtk_container_add(GTK_CONTAINER(window), sw);
-    //gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw), \
-    //        GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    //gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw), \
-    //        GTK_SHADOW_IN);
 
     vbox = gtk_vbox_new (FALSE, 0);
     gtk_container_add (GTK_CONTAINER (window), vbox);
@@ -496,23 +539,20 @@ main( int argc, char *argv[])
 
     menubar  = gtk_menu_bar_new ();
     filemenu = gtk_menu_new ();
+    editmenu = gtk_menu_new();
     helpmenu = gtk_menu_new ();
 
 
     accel_group = gtk_accel_group_new ();
     gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
-    //file = gtk_menu_item_new_with_label("File");
+
+    /*File menu*/
     file = gtk_menu_item_new_with_mnemonic ("_File");
     nopen = gtk_image_menu_item_new_from_stock (GTK_STOCK_OPEN, NULL);
     nnew = gtk_image_menu_item_new_from_stock (GTK_STOCK_NEW, NULL);
-    //nsave = gtk_image_menu_item_new_from_stock(GTK_STOCK_SAVE, NULL);
     sep = gtk_separator_menu_item_new ();
     quit = gtk_image_menu_item_new_from_stock (GTK_STOCK_QUIT, accel_group);
     nsave = gtk_image_menu_item_new_from_stock (GTK_STOCK_SAVE, accel_group);
-
-    help = gtk_menu_item_new_with_label ("Help");
-
-    //quit = gtk_menu_item_new_with_label("quit");
     gtk_widget_add_accelerator (quit, 
                                 "activate",
                                 accel_group,
@@ -527,13 +567,63 @@ main( int argc, char *argv[])
                                 GDK_CONTROL_MASK, 
                                 GTK_ACCEL_VISIBLE);
 
-    //about = gtk_menu_item_new_with_label("about");
+
+
+    /* Edit menu */
+    edit = gtk_menu_item_new_with_mnemonic ("_Edit");
+    cut  = gtk_menu_item_new_with_mnemonic ("Cu_t");
+    copy = gtk_menu_item_new_with_mnemonic ("_Copy");
+    paste = gtk_menu_item_new_with_mnemonic ("_Paste");
+    delete = gtk_menu_item_new_with_mnemonic ("_Delete");
+    selectall = gtk_menu_item_new_with_mnemonic ("_Select All");
+
+    gtk_widget_add_accelerator (cut, 
+                               "activate", 
+                               accel_group, 
+                               GDK_x,
+                               GDK_CONTROL_MASK,
+                               GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (copy, 
+                                "activate",
+                                accel_group,
+                                GDK_c,
+                                GDK_CONTROL_MASK,
+                                GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (paste,
+                                "activate",
+                                accel_group,
+                                GDK_v,
+                                GDK_CONTROL_MASK,
+                                GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (delete, 
+                                "activate",
+                                accel_group,
+                                GDK_KEY_Delete,
+                                0,
+                                GTK_ACCEL_VISIBLE);
+
+    gtk_widget_add_accelerator (selectall,
+                                "activate",
+                                accel_group,
+                                GDK_a,
+                                GDK_CONTROL_MASK,
+                                GTK_ACCEL_VISIBLE);
+  
+
+    /* Help memu */
+    help = gtk_menu_item_new_with_label ("Help");
     about = gtk_image_menu_item_new_from_stock (GTK_STOCK_ABOUT, NULL);
 
+
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (file), filemenu);
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (edit), editmenu);
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (help), helpmenu);
 
     gtk_menu_shell_append (GTK_MENU_SHELL (menubar), file);
+    gtk_menu_shell_append (GTK_MENU_SHELL (menubar), edit);
     gtk_menu_shell_append (GTK_MENU_SHELL (menubar), help);
 
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), nopen);
@@ -543,32 +633,33 @@ main( int argc, char *argv[])
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), sep);
     gtk_menu_shell_append (GTK_MENU_SHELL (filemenu), quit);
 
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu), cut);
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu), copy);
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu), paste);
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu), delete);
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu),
+                             gtk_separator_menu_item_new());
+    gtk_menu_shell_append (GTK_MENU_SHELL (editmenu), selectall);
+ 
     gtk_menu_shell_append (GTK_MENU_SHELL (helpmenu), about);
 
 
-    //view = gtk_text_view_new();
-    //view = gtk_source_view_new ();
-    buffer = GTK_SOURCE_BUFFER (gtk_source_buffer_new (NULL)); //创建缓冲区
+    buffer = GTK_SOURCE_BUFFER (gtk_source_buffer_new (NULL));                  /*创建缓冲区 */
     view = gtk_source_view_new_with_buffer (buffer);
-    //set_buffer_language("php");
-    gtk_source_view_set_show_line_marks (GTK_SOURCE_VIEW (view), TRUE); //显示行号栏
-    gtk_source_view_set_show_line_numbers (GTK_SOURCE_VIEW (view), TRUE);//行号栏里面显示数字
-    gtk_source_view_set_highlight_current_line (GTK_SOURCE_VIEW (view), TRUE);//突显当前行
+    gtk_source_view_set_show_line_marks (GTK_SOURCE_VIEW (view), TRUE);         /* 显示行号栏 */
+    gtk_source_view_set_show_line_numbers (GTK_SOURCE_VIEW (view), TRUE);       /* 行号栏里面显示数字 */
+    gtk_source_view_set_highlight_current_line (GTK_SOURCE_VIEW (view), TRUE);  /* 突显当前行 */
     gtk_source_view_set_indent_on_tab (GTK_SOURCE_VIEW (view), TRUE);
-    gtk_source_view_set_auto_indent (GTK_SOURCE_VIEW (view), TRUE); //启动自动缩进的文本
+    gtk_source_view_set_auto_indent (GTK_SOURCE_VIEW (view), TRUE);             /* 启动自动缩进的文本 */
     gtk_source_view_set_tab_width (GTK_SOURCE_VIEW (view), 4);
-    gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (view), GTK_WRAP_CHAR); //设置自动换行的模式:
+    gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (view), GTK_WRAP_CHAR);          /* 设置自动换行的模式 */
 
-    //gtk_box_pack_start(GTK_BOX(vbox), view, TRUE, TRUE, 0);
-    //buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
-    scrolled = gtk_scrolled_window_new (NULL, NULL); /*创建滚动窗口构件*/
+    scrolled = gtk_scrolled_window_new (NULL, NULL);                            /* 创建滚动窗口构件 */
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled),
                                     GTK_POLICY_AUTOMATIC,
                                     GTK_POLICY_AUTOMATIC);
     gtk_widget_grab_focus (view);
     gtk_container_add (GTK_CONTAINER (scrolled), view);
-    //follow cursor
-    //gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),view);
 
     statusbar = gtk_statusbar_new ();
 
@@ -579,7 +670,6 @@ main( int argc, char *argv[])
     gtk_label_set_width_chars(GTK_LABEL(label), 30);
     gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
 
-    //label = gtk_button_new_with_label("Unsaved Document");
     gtk_notebook_append_page (GTK_NOTEBOOK (notebook), box, label);
     gtk_notebook_set_current_page (GTK_NOTEBOOK (notebook), 0);
 
@@ -596,6 +686,16 @@ main( int argc, char *argv[])
     gtk_box_pack_start (GTK_BOX(vbox), statusbar, FALSE, FALSE, 0);
 
     //gtk_widget_add_events(window, GDK_BUTTON_PRESS_MASK);
+    g_signal_connect (G_OBJECT (cut), \
+            "activate", G_CALLBACK(gtk_notepad_cut), NULL);
+    g_signal_connect (G_OBJECT (copy), \
+            "activate", G_CALLBACK (gtk_notepad_copy), NULL);
+    g_signal_connect (G_OBJECT (paste), \
+            "activate", G_CALLBACK (gtk_notepad_paste), NULL);
+    g_signal_connect (G_OBJECT (delete), \
+            "activate",G_CALLBACK (gtk_notepad_delete), NULL);
+    g_signal_connect (G_OBJECT (selectall), \
+            "activate", G_CALLBACK (gtk_notepad_select_all), NULL);
     g_signal_connect (G_OBJECT (about), \
             "button-press-event", G_CALLBACK(show_about), NULL);
     g_signal_connect (G_OBJECT (nopen), \

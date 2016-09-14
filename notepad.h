@@ -10,7 +10,7 @@
 
 typedef struct {
     gchar      *filename;
-    guchar      *content;
+    guchar     *content;
     GtkWidget  *label;
 } OpendFile;
 
@@ -21,37 +21,51 @@ typedef enum _status {
 
 
 
-void deal_switch_page();
+void gtk_notepad_cut (void);
 
-void create_new_file(GtkWidget *widget, gpointer notebook);
+void gtk_notepad_copy (void);
 
-GdkPixbuf *create_pixbuf(const gchar *filename);
+void gtk_notepad_paste (void);
 
-void set_buffer_language(const gchar * lang);
+void gtk_notepad_delete (void);
 
-void update_line_color(GtkWidget *view);
+void gtk_notepad_select_all (void);
 
-char * get_file_suffix(const gchar* filename);
+void create_new_file (GtkWidget *widget, gpointer notebook);
 
-gchar* gtk_show_file_save(GtkWidget* parent_window, gchar *text, GtkWidget **dialog);
+void deal_switch_page (GtkNotebook *notebook, gpointer page,
+        guint page_num, gpointer data);
 
-void set_font(GtkWidget *widget, gchar *fontname);
+GdkPixbuf *create_pixbuf (const gchar *filename);
 
-void select_font(GtkWidget *widget);
+void set_buffer_language (const gchar * lang);
 
-void select_color(GtkWidget *widget);
+STATUS write_buf (FILE *pFile, gchar *text);
 
-void show_about(GtkWidget *widget, gpointer data);
+void update_line_color (GtkWidget *view);
 
-void update_statusbar(GtkSourceBuffer *buffer, GtkStatusbar *statusbar);
+gchar * get_file_suffix (const gchar* filename);
 
-STATUS save_file(GtkWidget *widget);
+gchar* gtk_show_file_save (GtkWidget* parent_window, 
+        gchar *text, GtkWidget **dialog);
 
-int open_file(GtkWidget *file);
+void set_font (GtkWidget *widget, gchar *fontname);
 
-void select_and_open_file(GtkWidget *widget);
+void select_font (GtkWidget *widget);
 
-void mark_set_callback(GtkSourceBuffer *buffer, const GtkTextIter \
+void select_color (GtkWidget *widget);
+
+void show_about (GtkWidget *widget, gpointer data);
+
+void update_statusbar (GtkSourceBuffer *buffer, GtkStatusbar *statusbar);
+
+STATUS save_file (GtkWidget *widget);
+
+int open_file (GtkWidget *file);
+
+void select_and_open_file (GtkWidget *widget);
+
+void mark_set_callback (GtkSourceBuffer *buffer, const GtkTextIter \
          *new_location, GtkTextMark *mark, gpointer data);
 
 void init_text_view(void);
